@@ -12,6 +12,7 @@ pypdf
 faiss-cpu
 sentence-transformers
 groq
+PyPDF2
 
 
 # Database
@@ -27,3 +28,4 @@ werkzeug
 numpy
 pandas
 gTTS
+-e .

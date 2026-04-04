@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI Study Companion | Premium Interface</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none; /* better UX for toggle/buttons */
+    }
+
+    body {
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+        overflow: hidden;
+        transition: background-color 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1), color 0.3s ease;
+        background: #000000; /* fallback */
+        color: #ffffff;
+    }
+
+    /* PREMIUM LOADING ANIMATION - fullscreen overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000000;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        backdrop-filter: blur(0px);
+        transition: opacity 0.8s ease, visibility 0.8s ease;
+        pointer-events: none;
+    }
+
+    .loading-spinner {
+        width: 64px;
+        height: 64px;
+        border: 3px solid rgba(255,255,255,0.2);
+        border-top: 3px solid #ffffff;
+        border-radius: 50%;
+        animation: spin 0.9s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+        margin-top: 24px;
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+        font-weight: 300;
+        background: linear-gradient(135deg, #fff, #aaa);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: pulseGlow 1.5s infinite;
+    }
+
+    @keyframes pulseGlow {
+        0% { opacity: 0.5; text-shadow: 0 0 0px white; }
+        50% { opacity: 1; text-shadow: 0 0 8px rgba(255,255,255,0.8); }
+        100% { opacity: 0.5; text-shadow: 0 0 0px white; }
+    }
+
+    /* main content wrapper (hidden until loading finishes) */
+    .main-content {
+        opacity: 0;
+        transform: scale(0.98);
+        transition: opacity 0.7s ease, transform 0.7s ease;
+        width: 100%;
+        height: 100vh;
+        position: relative;
+    }
+
+    .main-content.visible {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* CANVAS background (dynamic particles / cubes) */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 1;
+        pointer-events: none;  /* so buttons click through */
+    }
+
+    /* glassmorphism card container */
+    .glass-card {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 20;
+        text-align: center;
+        background: rgba(10, 10, 10, 0.55);
+        backdrop-filter: blur(14px) saturate(180%);
+        -webkit-backdrop-filter: blur(14px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 3rem 4rem;
+        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255,255,255,0.1) inset;
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        width: auto;
+        min-width: 340px;
+    }
+
+    /* Gradient glow text */
+    .glow-text {
+        font-size: 3.2rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 4s linear infinite, textGlow 2.5s ease-in-out infinite alternate;
+        letter-spacing: -0.5px;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    @keyframes textGlow {
+        0% { text-shadow: 0 0 2px rgba(255,255,255,0.2); }
+        100% { text-shadow: 0 0 20px rgba(255,255,255,0.6), 0 0 5px #aaaaff; }
+    }
+
+    /* button group glass style */
+    .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 28px;
+        margin-top: 16px;
+    }
+
+    .btn {
+        text-decoration: none;
+        padding: 12px 32px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid rgba(255, 255, 255, 0.6);
+        color: white;
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+        z-index: 2;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+        z-index: -1;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn:hover {
+        transform: translateY(-3px) scale(1.05);
+        background: rgba(255, 255, 255, 0.2);
+        border-color: white;
+        box-shadow: 0 10px 20px -5px rgba(0,0,0,0.5);
+        color: #fff;
+    }
+
+    /* Dark/Light Toggle - premium style */
+    .theme-toggle {
+        position: fixed;
+        top: 28px;
+        right: 32px;
+        z-index: 30;
+        background: rgba(20, 20, 30, 0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 60px;
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .theme-toggle:hover {
+        background: rgba(40,40,55,0.8);
+        transform: scale(1.02);
+    }
+
+    .toggle-icon {
+        font-size: 1.3rem;
+        transition: transform 0.3s;
+    }
+
+    /* light mode overrides */
+    body.light-mode {
+        background: #f5f7fc;
+    }
+
+    body.light-mode .glass-card {
+        background: rgba(245, 245, 255, 0.5);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.05) inset;
+    }
+
+    body.light-mode .glow-text {
+        background: linear-gradient(135deg, #1e2a5e, #2c3e8f, #1a2c6e);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: shimmer 4s linear infinite, textGlowLight 2s infinite alternate;
+    }
+
+    @keyframes textGlowLight {
+        0% { text-shadow: 0 0 0px rgba(30,42,94,0.2); }
+        100% { text-shadow: 0 0 12px rgba(44,62,143,0.4), 0 0 4px #a0b0ff; }
+    }
+
+    body.light-mode .btn {
+        background: rgba(0, 0, 0, 0.08);
+        border-color: rgba(0, 0, 0, 0.4);
+        color: #111;
+    }
+
+    body.light-mode .btn:hover {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: #000;
+        color: #000;
+    }
+
+    body.light-mode .theme-toggle {
+        background: rgba(200, 210, 230, 0.7);
+        border-color: rgba(0,0,0,0.2);
+        color: #111;
+    }
+
+    body.light-mode canvas {
+        opacity: 0.6;  /* subtle canvas in light mode */
+    }
+
+    /* responsive */
+    @media (max-width: 550px) {
+        .glass-card {
+            padding: 2rem 1.8rem;
+            min-width: 280px;
+        }
+        .glow-text {
+            font-size: 2.2rem;
+        }
+        .btn {
+            padding: 8px 22px;
+            font-size: 0.9rem;
+        }
+        .theme-toggle {
+            top: 18px;
+            right: 18px;
+            padding: 5px 12px;
+        }
+    }
+
+    /* subtle footer */
+    .credit-note {
+        position: fixed;
+        bottom: 18px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.7rem;
+        opacity: 0.5;
+        z-index: 20;
+        pointer-events: none;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+    }
+</style>
+</head>
+<body>
+
+<!-- PREMIUM LOADING ANIMATION -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">⚡ INITIALIZING AI COMPANION ⚡</div>
+</div>
+
+<!-- main interactive content -->
+<div class="main-content" id="mainContent">
+    <canvas id="canvas"></canvas>
+
+    <div class="glass-card">
+        <h1 class="glow-text">✨ AI Study Companion ✨</h1>
+        <div class="buttons">
+            <a href="/login" class="btn">Login</a>
+            <a href="/register" class="btn">Register</a>
+        </div>
+    </div>
+
+    <!-- premium dark/light toggle -->
+    <div class="theme-toggle" id="themeToggle">
+        <span class="toggle-icon" id="toggleIcon">🌙</span>
+        <span id="toggleLabel">Dark Mode</span>
+    </div>
+
+    <div class="credit-note">intelligent • immersive • adaptive</div>
+</div>
+
+<script>
+    (function() {
+        // ---------------------- LOADING ANIMATION --------------------------
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const mainContent = document.getElementById('mainContent');
+
+        // simulate loading (can be instant but keep elegance)
+        window.addEventListener('load', () => {
+            // ensure loading at least 1.2 sec for dramatic effect, but ready
+            setTimeout(() => {
+                if (loadingOverlay) {
+                    loadingOverlay.style.opacity = '0';
+                    loadingOverlay.style.visibility = 'hidden';
+                }
+                mainContent.classList.add('visible');
+            }, 1300);
+        });
+
+        // if page loads extremely fast, fallback
+        if (document.readyState === 'complete') {
+            setTimeout(() => {
+                if (loadingOverlay && loadingOverlay.style.opacity !== '0') {
+                    loadingOverlay.style.opacity = '0';
+                    loadingOverlay.style.visibility = 'hidden';
+                    mainContent.classList.add('visible');
+                }
+            }, 1300);
+        }
+
+        // ---------------------- CANVAS (PREMIUM BLACK/WHITE CUBE PARTICLE) -----------------
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", () => {
+            resizeCanvas();
+        });
+
+        let cubes = [];
+
+        class Cube {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 12 + 4;   // between 4 and 16
+                this.speedX = (Math.random() - 0.5) * 1.6;
+                this.speedY = (Math.random() - 0.5) * 1.6;
+                this.angle = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+                this.life = 1.0;    // opacity factor
+                this.decay = 0.96;   // smooth shrink & fade
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.angle += this.rotationSpeed;
+                this.size *= this.decay;
+                this.life *= 0.97;
+                if (this.size < 0.8) this.size = 0;
+            }
+
+            draw() {
+                if (this.size <= 0.3) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                // premium white stroke with fading opacity based on life and current theme
+                let globalAlpha = Math.min(this.life * 0.9, 0.85);
+                // detect light mode dynamic style (get body class)
+                const isLight = document.body.classList.contains('light-mode');
+                if (isLight) {
+                    ctx.strokeStyle = `rgba(20, 20, 40, ${globalAlpha * 0.8})`;
+                } else {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${globalAlpha})`;
+                }
+                ctx.lineWidth = Math.max(1, this.size * 0.2);
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                // add subtle inner glow for black bg
+                if (!isLight && this.size > 3) {
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = "rgba(255,255,200,0.5)";
+                    ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                    ctx.shadowBlur = 0;
+                }
+                ctx.restore();
+            }
+        }
+
+        // generate trail on mouse move (enhanced glassmorphism effect)
+        let mouseX = window.innerWidth/2, mouseY = window.innerHeight/2;
+        let lastMoveTime = 0;
+        window.addEventListener("mousemove", (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            const now = Date.now();
+            // spawn elegant cubes more smoothly
+            if (now - lastMoveTime > 20) {
+                for (let i = 0; i < 2; i++) {
+                    cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 8, e.clientY + (Math.random() - 0.5) * 8));
+                }
+                lastMoveTime = now;
+            } else {
+                // occasional extra
+                if (Math.random() < 0.4) cubes.push(new Cube(e.clientX, e.clientY));
+            }
+        });
+
+        // also random ambient floating particles (optional for background richness)
+        setInterval(() => {
+            if (cubes.length < 180) {
+                // ambient drifters from edges
+                let side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) { x = Math.random() * canvas.width; y = -5; }
+                else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 5; }
+                else if (side === 1) { x = -5; y = Math.random() * canvas.height; }
+                else { x = canvas.width + 5; y = Math.random() * canvas.height; }
+                const ambientCube = new Cube(x, y);
+                ambientCube.speedX = (Math.random() - 0.5) * 0.8;
+                ambientCube.speedY = (Math.random() - 0.5) * 0.8;
+                ambientCube.size = Math.random() * 9 + 3;
+                cubes.push(ambientCube);
+            }
+        }, 800);
+
+        // clean up cubes periodically
+        function animateCubes() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // dynamic gradient based on theme: pure black/white premium feel
+            const isLightMode = document.body.classList.contains('light-mode');
+            if (isLightMode) {
+                ctx.fillStyle = "#f9fafc";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // extra subtle grid pattern?
+                ctx.strokeStyle = "rgba(0,0,0,0.05)";
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < canvas.width; i += 45) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, i % canvas.height);
+                    ctx.lineTo(canvas.width, i % canvas.height);
+                    ctx.stroke();
+                }
+            } else {
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // subtle star dust effect: white dots
+                ctx.fillStyle = "rgba(255,255,255,0.08)";
+                for (let i = 0; i < 120; i++) {
+                    if (i%7 === 0) continue;
+                    ctx.beginPath();
+                    ctx.arc( (i * 131) % canvas.width, (i * 253) % canvas.height, 1.2, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+
+            // update and draw cubes
+            for (let i = cubes.length-1; i >= 0; i--) {
+                const c = cubes[i];
+                c.update();
+                c.draw();
+                if (c.size <= 0.5 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 80) {
+                    cubes.splice(i,1);
+                }
+            }
+            requestAnimationFrame(animateCubes);
+        }
+        animateCubes();
+
+        // ---------------------- DARK / LIGHT TOGGLE (glass & premium) -----------------
+        const themeToggle = document.getElementById('themeToggle');
+        const toggleIconSpan = document.getElementById('toggleIcon');
+        const toggleLabelSpan = document.getElementById('toggleLabel');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+                toggleIconSpan.innerHTML = '🌙';
+                toggleLabelSpan.innerText = 'Dark Mode';
+                localStorage.setItem('ai_theme', 'dark');
+                // canvas background managed by animation loop already, just style fine
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                toggleIconSpan.innerHTML = '☀️';
+                toggleLabelSpan.innerText = 'Light Mode';
+                localStorage.setItem('ai_theme', 'light');
+            }
+            // additional style for canvas dynamic in light mode: the fill style will change each frame, just fine
+        }
+
+        // check saved theme
+        const savedTheme = localStorage.getItem('ai_theme');
+        if (savedTheme === 'light') {
+            setTheme(false);
+        } else {
+            // default dark (premium black)
+            document.body.classList.add('dark-mode');
+            setTheme(true);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isCurrentlyDark = !document.body.classList.contains('light-mode');
+            if (isCurrentlyDark) {
+                setTheme(false);
+            } else {
+                setTheme(true);
+            }
+        });
+
+        // small interactive: add extra spark on buttons hover (canvas effect)
+        const btns = document.querySelectorAll('.btn');
+        btns.forEach(btn => {
+            btn.addEventListener('mouseenter', (e) => {
+                const rect = btn.getBoundingClientRect();
+                for (let i = 0; i < 6; i++) {
+                    cubes.push(new Cube(rect.left + rect.width/2 + (Math.random() - 0.5)*30, rect.top + rect.height/2 + (Math.random() - 0.5)*20));
+                }
+            });
+        });
+
+        // optional: when theme toggled, we may refresh canvas visual dynamic (already handled)
+        // final resize safety for canvas clear
+        window.addEventListener('resize', () => {
+            if (ctx) {
+                // small flush
+            }
+        });
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Core Backend
+flask
+python-dotenv
+
+# Hugging Face (API-based, no torch needed)
+huggingface_hub
+requests
+
+# RAG (lightweight)
+langchain
+pypdf
+faiss-cpu
+sentence-transformers
+groq
+
+
+# Database
+mysql-connector-python
+sqlalchemy
+
+# Frontend
+jinja2
+flask_sqlalchemy
+
+# Utilities
+werkzeug
+numpy
+pandas
+gTTS

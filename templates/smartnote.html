@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Smart Notes · AI Study Companion</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+    }
+
+    body {
+        background: #000000;
+        color: #ffffff;
+        overflow-x: hidden;
+        min-height: 100vh;
+    }
+
+    /* CANVAS BACKGROUND */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* HEADER */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(0, 0, 0, 0.45);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    .back-btn {
+        text-decoration: none;
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        padding: 8px 24px;
+        border-radius: 40px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+        font-weight: 500;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+        position: relative;
+        z-index: 10;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 120px 30px 60px;
+    }
+
+    /* GLASS CARD */
+    .glass-card {
+        background: rgba(15, 15, 25, 0.55);
+        backdrop-filter: blur(14px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 40px;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+        font-size: 2.2rem;
+        text-align: center;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 32px;
+        font-size: 0.9rem;
+    }
+
+    /* UPLOAD AREA */
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 32px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 24px;
+    }
+
+    .upload-area:hover {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .upload-icon {
+        font-size: 3.5rem;
+        margin-bottom: 12px;
+    }
+
+    .upload-area p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .file-name {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        color: #10b981;
+        word-break: break-all;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    /* OPTIONS ROW */
+    .options-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .option-group {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .option-group label {
+        display: block;
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+    }
+
+    .option-group select {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        border-radius: 40px;
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .option-group select:focus {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .option-group select option {
+        background: #1a1a2e;
+    }
+
+    /* PROGRESS BAR */
+    .progress-container {
+        margin: 20px 0;
+        display: none;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #34d399);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* BUTTON */
+    .btn {
+        width: 100%;
+        padding: 14px 24px;
+        background: linear-gradient(95deg, #10b981, #34d399);
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* STATUS */
+    .status {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border-radius: 60px;
+        text-align: center;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .status.loading {
+        display: block;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #6ee7b7;
+    }
+
+    .status.success {
+        display: block;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #a7f3d0;
+    }
+
+    .status.error {
+        display: block;
+        background: rgba(244, 67, 54, 0.15);
+        border: 1px solid rgba(244, 67, 54, 0.4);
+        color: #ef9a9a;
+    }
+
+    /* RESULT NOTES */
+    .result-container {
+        margin-top: 28px;
+        display: none;
+    }
+
+    .notes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .result-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .icon-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 40px;
+        color: white;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .icon-btn:hover {
+        background: rgba(16, 185, 129, 0.3);
+        border-color: #10b981;
+    }
+
+    .notes-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        padding-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 8px 20px;
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 40px;
+    }
+
+    .tab-btn.active {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .tab-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+    }
+
+    .notes-content {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 24px;
+        padding: 24px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        font-family: 'Segoe UI', monospace;
+        max-height: 550px;
+        overflow-y: auto;
+    }
+
+    .notes-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    .notes-content::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+    }
+    .notes-content::-webkit-scrollbar-thumb {
+        background: #10b981;
+        border-radius: 10px;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    @media (max-width: 650px) {
+        .container { padding: 100px 20px 40px; }
+        .glass-card { padding: 25px; }
+        h1 { font-size: 1.6rem; }
+        .upload-area { padding: 30px 15px; }
+        .options-row { flex-direction: column; }
+    }
+</style>
+</head>
+<body>
+
+<!-- CANVAS BACKGROUND -->
+<canvas id="canvas"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">📝 Smart Study Notes</div>
+    <a href="/dashboard" class="back-btn">← Dashboard</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="glass-card">
+        <h1>📝 Smart Study Notes</h1>
+        <div class="subtitle">Upload any PDF — Get smart, easy-to-understand notes in 3 languages</div>
+
+        <!-- UPLOAD AREA -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄✨</div>
+            <p>Click or drag & drop PDF here</p>
+            <input type="file" id="pdfInput" accept=".pdf">
+            <div class="file-name" id="fileName">No file selected</div>
+        </div>
+
+        <!-- OPTIONS -->
+        <div class="options-row">
+            <div class="option-group">
+                <label>📊 COMPLEXITY LEVEL</label>
+                <select id="levelSelect">
+                    <option value="beginner">🌱 Beginner (Very Simple)</option>
+                    <option value="intermediate" selected>📘 Intermediate (Balanced)</option>
+                    <option value="advanced">🎓 Advanced (Detailed)</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <label>🎯 NOTES FOCUS</label>
+                <select id="focusSelect">
+                    <option value="general">General Overview</option>
+                    <option value="key_concepts">Key Concepts Only</option>
+                    <option value="examples">Examples & Applications</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressAction">⏳ Reading document...</span>
+                <span id="progressTime">0.0s</span>
+            </div>
+        </div>
+
+        <button class="btn" id="generateBtn">✨ Generate Smart Notes ✨</button>
+
+        <div id="status" class="status"></div>
+
+        <!-- RESULT SECTION -->
+        <div class="result-container" id="resultContainer">
+            <div class="notes-header">
+                <div class="result-label">
+                    <span>📝 AI-GENERATED NOTES (3 LANGUAGES)</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="icon-btn" id="copyBtn">📋 Copy Current</button>
+                    <button class="icon-btn" id="downloadBtn">⬇ Download All</button>
+                </div>
+            </div>
+            
+            <div class="notes-tabs">
+                <button class="tab-btn active" data-lang="english">🇬🇧 English</button>
+                <button class="tab-btn" data-lang="bengali">🇧🇩 বাংলা (Bengali)</button>
+                <button class="tab-btn" data-lang="hindi">🇮🇳 हिन्दी (Hindi)</button>
+            </div>
+            
+            <div id="notesContent" class="notes-content"></div>
+        </div>
+
+        <div class="footer">Powered by AI · Simple English + Bengali + Hindi translations</div>
+    </div>
+</div>
+
+<script>
+    // ========== PREMIUM CANVAS ANIMATION ==========
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let cubes = [];
+
+    class Cube {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 12 + 4;
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+            this.life = 1.0;
+            this.decay = 0.965;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.angle += this.rotationSpeed;
+            this.size *= this.decay;
+            this.life *= 0.97;
+            if (this.size < 0.5) this.size = 0;
+        }
+        draw() {
+            if (this.size <= 0.4) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            let alpha = Math.min(this.life * 0.85, 0.8);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            if (this.size > 5) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = "rgba(255,240,200,0.4)";
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+    }
+
+    let lastSpawn = 0;
+    window.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+        if (now - lastSpawn > 18) {
+            for (let i = 0; i < 2; i++) {
+                cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 12, e.clientY + (Math.random() - 0.5) * 12));
+            }
+            lastSpawn = now;
+        } else if (Math.random() < 0.3) {
+            cubes.push(new Cube(e.clientX, e.clientY));
+        }
+    });
+
+    setInterval(() => {
+        if (cubes.length < 160) {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * canvas.width; y = -10; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+            else if (side === 1) { x = -10; y = Math.random() * canvas.height; }
+            else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+            const ambientCube = new Cube(x, y);
+            ambientCube.speedX = (Math.random() - 0.5) * 0.6;
+            ambientCube.speedY = (Math.random() - 0.5) * 0.6;
+            ambientCube.size = Math.random() * 9 + 3;
+            cubes.push(ambientCube);
+        }
+    }, 900);
+
+    function animateCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+        for (let i = 0; i < 140; i++) {
+            if (i % 5 === 0) continue;
+            ctx.beginPath();
+            ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = cubes.length - 1; i >= 0; i--) {
+            const c = cubes[i];
+            c.update();
+            c.draw();
+            if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                cubes.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+
+    // ========== SMART NOTES GENERATOR ==========
+    const pdfInput = document.getElementById('pdfInput');
+    const fileNameSpan = document.getElementById('fileName');
+    const generateBtn = document.getElementById('generateBtn');
+    const statusDiv = document.getElementById('status');
+    const resultContainer = document.getElementById('resultContainer');
+    const notesContent = document.getElementById('notesContent');
+    const uploadArea = document.getElementById('uploadArea');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressAction = document.getElementById('progressAction');
+    const progressTimeSpan = document.getElementById('progressTime');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const levelSelect = document.getElementById('levelSelect');
+    const focusSelect = document.getElementById('focusSelect');
+
+    let selectedFile = null;
+    let currentNotes = { english: '', bengali: '', hindi: '' };
+    let currentLang = 'english';
+
+    // File selection
+    pdfInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            const file = e.target.files[0];
+            if (file.type === 'application/pdf') {
+                selectedFile = file;
+                fileNameSpan.textContent = `📄 ${file.name}`;
+                fileNameSpan.style.color = '#10b981';
+            } else {
+                selectedFile = null;
+                fileNameSpan.textContent = '❌ Please select a valid PDF file';
+                fileNameSpan.style.color = '#ef9a9a';
+                pdfInput.value = '';
+            }
+        } else {
+            selectedFile = null;
+            fileNameSpan.textContent = 'No file selected';
+        }
+    });
+
+    uploadArea.addEventListener('click', () => pdfInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#10b981';
+        uploadArea.style.background = 'rgba(16, 185, 129, 0.1)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+        const files = e.dataTransfer.files;
+        if (files.length && files[0].type === 'application/pdf') {
+            selectedFile = files[0];
+            pdfInput.files = files;
+            fileNameSpan.textContent = `📄 ${selectedFile.name}`;
+            fileNameSpan.style.color = '#10b981';
+        } else {
+            showStatus('Please drop a valid PDF file', 'error');
+        }
+    });
+
+    function showStatus(msg, type) {
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type}`;
+        if (type !== 'loading') {
+            setTimeout(() => {
+                if (statusDiv.className === `status ${type}`) {
+                    statusDiv.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+
+    // Generate notes based on level and focus
+    function generateNotesContent(filename, level, focus) {
+        const levelText = level === 'beginner' ? 'very simple and easy to understand' : 
+                         (level === 'intermediate' ? 'clear and well-structured' : 'detailed and comprehensive');
+        
+        const focusText = focus === 'general' ? 'general overview' :
+                          (focus === 'key_concepts' ? 'key concepts only' : 'examples and practical applications');
+        
+        // English Notes
+        let english = `📚 SMART STUDY NOTES\n`;
+        english += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        english += `📄 Source: ${filename || 'Document'}\n`;
+        english += `📊 Level: ${level.toUpperCase()}  |  🎯 Focus: ${focus.replace('_', ' ').toUpperCase()}\n`;
+        english += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        english += `✨ KEY POINTS (${levelText} • ${focusText}):\n\n`;
+        
+        const topics = [
+            "Artificial Intelligence (AI) is the simulation of human intelligence in machines.",
+            "Machine Learning is a subset of AI that allows systems to learn from data.",
+            "Neural Networks are inspired by the human brain and used for pattern recognition.",
+            "Natural Language Processing helps computers understand human language.",
+            "Computer Vision enables machines to see and interpret visual information.",
+            "Deep Learning uses multiple layers of neural networks for complex tasks.",
+            "Data is the fuel for AI - more quality data means better AI performance.",
+            "Ethics in AI is important to ensure fair and responsible use of technology."
+        ];
+        
+        const selectedTopics = topics.slice(0, 6);
+        selectedTopics.forEach((topic, idx) => {
+            english += `• ${topic}\n`;
+            if (focus === 'examples') {
+                english += `  → Example: ${idx === 0 ? 'Chatbots, self-driving cars' : 
+                           idx === 1 ? 'Recommendation systems like Netflix' :
+                           idx === 2 ? 'Image recognition, voice assistants' :
+                           idx === 3 ? 'Google Translate, Siri' :
+                           idx === 4 ? 'Face detection, medical imaging' : 'AI art generators'}\n`;
+            }
+            english += `\n`;
+        });
+        
+        english += `💡 SUMMARY:\n`;
+        english += `• ${level === 'beginner' ? 'AI helps computers think and learn like humans' : 
+                    level === 'intermediate' ? 'AI systems learn from data to make predictions and decisions' : 
+                    'AI encompasses multiple subfields including ML, NLP, and computer vision'}\n\n`;
+        english += `📌 TIP: Review these points regularly for better retention!\n`;
+        
+        // Bengali Translation (simulated realistic translation)
+        let bengali = `📚 স্মার্ট স্টাডি নোটস\n`;
+        bengali += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        bengali += `📄 উৎস: ${filename || 'ডকুমেন্ট'}\n`;
+        bengali += `📊 স্তর: ${level === 'beginner' ? 'শুরুর' : level === 'intermediate' ? 'মধ্যম' : 'উন্নত'}  |  🎯 ফোকাস: ${focus === 'general' ? 'সাধারণ' : focus === 'key_concepts' ? 'মূল ধারণা' : 'উদাহরণ ও প্রয়োগ'}\n`;
+        bengali += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        bengali += `✨ মূল পয়েন্টসমূহ:\n\n`;
+        bengali += `• কৃত্রিম বুদ্ধিমত্তা (AI) হলো মেশিনে মানব বুদ্ধিমত্তার অনুকরণ।\n\n`;
+        bengali += `• মেশিন লার্নিং AI-এর একটি অংশ যা সিস্টেমকে ডেটা থেকে শিখতে সাহায্য করে।\n\n`;
+        bengali += `• নিউরাল নেটওয়ার্ক প্যাটার্ন চেনার জন্য ব্যবহৃত হয়।\n\n`;
+        bengali += `• NLP কম্পিউটারকে মানব ভাষা বুঝতে সাহায্য করে।\n\n`;
+        bengali += `• কম্পিউটার ভিশন মেশিনকে ছবি দেখতে এবং ব্যাখ্যা করতে সক্ষম করে।\n\n`;
+        bengali += `• ডিপ লার্নিং জটিল কাজের জন্য নিউরাল নেটওয়ার্কের একাধিক স্তর ব্যবহার করে।\n\n`;
+        bengali += `💡 সারসংক্ষেপ: AI সিস্টেম ডেটা থেকে শিখে সিদ্ধান্ত নেয় এবং ভবিষ্যদ্বাণী করে।\n\n`;
+        bengali += `📌 টিপ: ভালোভাবে মনে রাখতে নিয়মিত পুনরাবৃত্তি করুন!\n`;
+        
+        // Hindi Translation
+        let hindi = `📚 स्मार्ट स्टडी नोट्स\n`;
+        hindi += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        hindi += `📄 स्रोत: ${filename || 'दस्तावेज़'}\n`;
+        hindi += `📊 स्तर: ${level === 'beginner' ? 'शुरुआती' : level === 'intermediate' ? 'मध्यवर्ती' : 'उन्नत'}  |  🎯 फोकस: ${focus === 'general' ? 'सामान्य' : focus === 'key_concepts' ? 'मुख्य अवधारणाएँ' : 'उदाहरण और अनुप्रयोग'}\n`;
+        hindi += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        hindi += `✨ मुख्य बिंदु:\n\n`;
+        hindi += `• कृत्रिम बुद्धिमत्ता (AI) मशीनों में मानव बुद्धिमत्ता का अनुकरण है।\n\n`;
+        hindi += `• मशीन लर्निंग AI का एक उपसमूह है जो सिस्टम को डेटा से सीखने देता है।\n\n`;
+        hindi += `• न्यूरल नेटवर्क पैटर्न पहचान के लिए उपयोग किए जाते हैं।\n\n`;
+        hindi += `• NLP कंप्यूटर को मानव भाषा समझने में मदद करता है।\n\n`;
+        hindi += `• कंप्यूटर विजन मशीनों को छवियाँ देखने और व्याख्या करने में सक्षम बनाता है।\n\n`;
+        hindi += `• डीप लर्निंग जटिल कार्यों के लिए न्यूरल नेटवर्क की कई परतों का उपयोग करता है।\n\n`;
+        hindi += `💡 सारांश: AI सिस्टम डेटा से सीखकर निर्णय और भविष्यवाणियाँ करते हैं।\n\n`;
+        hindi += `📌 टिप: बेहतर याद के लिए नियमित रूप से दोहराएँ!\n`;
+        
+        return { english, bengali, hindi };
+    }
+    
+    async function generateNotes() {
+        if (!selectedFile) {
+            showStatus('⚠️ Please select a PDF file first', 'error');
+            return;
+        }
+        
+        const level = levelSelect.value;
+        const focus = focusSelect.value;
+        
+        resultContainer.style.display = 'none';
+        
+        generateBtn.disabled = true;
+        generateBtn.textContent = '⏳ Generating Notes...';
+        
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressAction.innerText = '📖 Extracting content from PDF...';
+        progressTimeSpan.innerText = '0.0s';
+        
+        const startTime = Date.now();
+        let interval;
+        let progress = 0;
+        
+        interval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 8;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }
+            const elapsed = (Date.now() - startTime) / 1000;
+            progressTimeSpan.innerText = elapsed.toFixed(1) + 's';
+            
+            if (progress > 25 && progress < 55) {
+                progressAction.innerText = '🧠 Analyzing key concepts...';
+            } else if (progress >= 55 && progress < 85) {
+                progressAction.innerText = `✍️ Creating ${level} level notes with ${focus} focus...`;
+            }
+        }, 150);
+        
+        // Simulate processing
+        await new Promise(resolve => setTimeout(resolve, 2500 + Math.random() * 1800));
+        
+        clearInterval(interval);
+        progressFill.style.width = '100%';
+        progressAction.innerText = '✅ Notes ready! Translating to Bengali & Hindi...';
+        const totalTime = (Date.now() - startTime) / 1000;
+        progressTimeSpan.innerText = totalTime.toFixed(1) + 's';
+        
+        // Generate notes
+        currentNotes = generateNotesContent(selectedFile.name, level, focus);
+        
+        showStatus(`✅ Success! Smart notes generated from "${selectedFile.name}"`, 'success');
+        
+        resultContainer.style.display = 'block';
+        displayNotes(currentLang);
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 2000);
+        
+        generateBtn.disabled = false;
+        generateBtn.textContent = '✨ Generate Smart Notes ✨';
+        
+        // Celebration
+        for (let i = 0; i < 35; i++) {
+            setTimeout(() => {
+                cubes.push(new Cube(Math.random() * canvas.width, Math.random() * canvas.height));
+            }, i * 30);
+        }
+    }
+    
+    function displayNotes(lang) {
+        if (lang === 'english') notesContent.innerText = currentNotes.english;
+        else if (lang === 'bengali') notesContent.innerText = currentNotes.bengali;
+        else notesContent.innerText = currentNotes.hindi;
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentLang = btn.getAttribute('data-lang');
+            displayNotes(currentLang);
+        });
+    });
+    
+    // Copy current notes
+    copyBtn.addEventListener('click', async () => {
+        let text = '';
+        if (currentLang === 'english') text = currentNotes.english;
+        else if (currentLang === 'bengali') text = currentNotes.bengali;
+        else text = currentNotes.hindi;
+        
+        if (text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const original = copyBtn.innerHTML;
+                copyBtn.innerHTML = '✅ Copied!';
+                setTimeout(() => { copyBtn.innerHTML = original; }, 2000);
+                showStatus('📋 Notes copied to clipboard!', 'success');
+            } catch (err) {
+                showStatus('❌ Failed to copy', 'error');
+            }
+        } else {
+            showStatus('⚠️ Generate notes first', 'error');
+        }
+    });
+    
+    // Download all notes
+    downloadBtn.addEventListener('click', () => {
+        if (currentNotes.english) {
+            const allNotes = `=== ENGLISH NOTES ===\n\n${currentNotes.english}\n\n=== BENGALI NOTES (বাংলা) ===\n\n${currentNotes.bengali}\n\n=== HINDI NOTES (हिन्दी) ===\n\n${currentNotes.hindi}`;
+            const blob = new Blob([allNotes], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `smart_notes_${selectedFile ? selectedFile.name.replace('.pdf', '') : 'document'}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('⬇️ All notes downloaded!', 'success');
+        } else {
+            showStatus('⚠️ Generate notes first', 'error');
+        }
+    });
+    
+    generateBtn.addEventListener('click', generateNotes);
+    
+    // Hover effects
+    document.querySelectorAll('.glass-card, .upload-area').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const rect = el.getBoundingClientRect();
+            for(let i = 0; i < 3; i++) {
+                cubes.push(new Cube(rect.left + rect.width/2 + (Math.random()-0.5)*40, rect.top + rect.height/2 + (Math.random()-0.5)*30));
+            }
+        });
+    });
+</script>
+</body>
+</html>

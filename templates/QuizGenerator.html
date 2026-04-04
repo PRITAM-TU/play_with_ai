@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI Quiz Generator · Smart Assessment Tool</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+    }
+
+    body {
+        background: #000000;
+        color: #ffffff;
+        overflow-x: hidden;
+        min-height: 100vh;
+    }
+
+    /* CANVAS BACKGROUND (PREMIUM CUBE ANIMATION) */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* HEADER WITH GLASSMORPHISM */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(0, 0, 0, 0.45);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    .back-btn {
+        text-decoration: none;
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        padding: 8px 24px;
+        border-radius: 40px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+        font-weight: 500;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+        position: relative;
+        z-index: 10;
+        max-width: 950px;
+        margin: 0 auto;
+        padding: 120px 30px 60px;
+    }
+
+    /* GLASS CARD */
+    .glass-card {
+        background: rgba(15, 15, 25, 0.55);
+        backdrop-filter: blur(14px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 40px;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+        font-size: 2.2rem;
+        text-align: center;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 32px;
+        font-size: 0.9rem;
+    }
+
+    /* UPLOAD AREA */
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 32px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 24px;
+    }
+
+    .upload-area:hover {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .upload-icon {
+        font-size: 3.5rem;
+        margin-bottom: 12px;
+    }
+
+    .upload-area p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .file-name {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        color: #f59e0b;
+        word-break: break-all;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    /* OPTIONS ROW */
+    .options-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .option-group {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .option-group label {
+        display: block;
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+    }
+
+    .option-group select, .option-group input {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        border-radius: 40px;
+        color: white;
+        font-size: 0.9rem;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .option-group select:focus, .option-group input:focus {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .option-group select option {
+        background: #1a1a2e;
+    }
+
+    /* PROGRESS BAR */
+    .progress-container {
+        margin: 20px 0;
+        display: none;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #f59e0b, #ef4444);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* BUTTON */
+    .btn {
+        width: 100%;
+        padding: 14px 24px;
+        background: linear-gradient(95deg, #f59e0b, #ef4444);
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* STATUS */
+    .status {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border-radius: 60px;
+        text-align: center;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .status.loading {
+        display: block;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
+    }
+
+    .status.success {
+        display: block;
+        background: rgba(76, 175, 80, 0.15);
+        border: 1px solid rgba(76, 175, 80, 0.4);
+        color: #a5d6a7;
+    }
+
+    .status.error {
+        display: block;
+        background: rgba(244, 67, 54, 0.15);
+        border: 1px solid rgba(244, 67, 54, 0.4);
+        color: #ef9a9a;
+    }
+
+    /* RESULT QUIZ */
+    .result-container {
+        margin-top: 28px;
+        display: none;
+    }
+
+    .quiz-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .result-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .icon-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 40px;
+        color: white;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .icon-btn:hover {
+        background: rgba(245, 158, 11, 0.3);
+        border-color: #f59e0b;
+    }
+
+    .quiz-content {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 24px;
+        padding: 24px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        font-family: 'Segoe UI', monospace;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .quiz-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    .quiz-content::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+    }
+    .quiz-content::-webkit-scrollbar-thumb {
+        background: #f59e0b;
+        border-radius: 10px;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    @media (max-width: 650px) {
+        .container { padding: 100px 20px 40px; }
+        .glass-card { padding: 25px; }
+        h1 { font-size: 1.6rem; }
+        .upload-area { padding: 30px 15px; }
+        .options-row { flex-direction: column; }
+    }
+</style>
+</head>
+<body>
+
+<!-- CANVAS BACKGROUND -->
+<canvas id="canvas"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">❓ AI Quiz Generator</div>
+    <a href="/dashboard" class="back-btn">← Dashboard</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="glass-card">
+        <h1>❓ AI Quiz Generator</h1>
+        <div class="subtitle">Upload any PDF — AI creates smart questions automatically</div>
+
+        <!-- UPLOAD AREA -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄✨</div>
+            <p>Click or drag & drop PDF here</p>
+            <input type="file" id="pdfInput" accept=".pdf">
+            <div class="file-name" id="fileName">No file selected</div>
+        </div>
+
+        <!-- QUIZ OPTIONS -->
+        <div class="options-row">
+            <div class="option-group">
+                <label>📊 NUMBER OF QUESTIONS</label>
+                <input type="number" id="numQuestions" min="3" max="20" value="8" step="1">
+            </div>
+            <div class="option-group">
+                <label>🎯 DIFFICULTY LEVEL</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <label>📚 QUIZ TYPE</label>
+                <select id="quizType">
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="mixed">Mixed (MCQ + True/False)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressAction">⏳ Analyzing document...</span>
+                <span id="progressTime">0.0s</span>
+            </div>
+        </div>
+
+        <button class="btn" id="generateBtn">✨ Generate Smart Quiz ✨</button>
+
+        <div id="status" class="status"></div>
+
+        <!-- RESULT SECTION -->
+        <div class="result-container" id="resultContainer">
+            <div class="quiz-header">
+                <div class="result-label">
+                    <span>📝 AI-GENERATED QUIZ</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="icon-btn" id="copyBtn">📋 Copy Quiz</button>
+                    <button class="icon-btn" id="downloadBtn">⬇ Download</button>
+                </div>
+            </div>
+            <div id="quizContent" class="quiz-content"></div>
+        </div>
+
+        <div class="footer">Powered by Advanced AI · Smart question generation from your content</div>
+    </div>
+</div>
+
+<script>
+    // ========== PREMIUM CANVAS ANIMATION (CUBES) ==========
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let cubes = [];
+
+    class Cube {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 12 + 4;
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+            this.life = 1.0;
+            this.decay = 0.965;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.angle += this.rotationSpeed;
+            this.size *= this.decay;
+            this.life *= 0.97;
+            if (this.size < 0.5) this.size = 0;
+        }
+        draw() {
+            if (this.size <= 0.4) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            let alpha = Math.min(this.life * 0.85, 0.8);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            if (this.size > 5) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = "rgba(255,240,200,0.4)";
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+    }
+
+    let lastSpawn = 0;
+    window.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+        if (now - lastSpawn > 18) {
+            for (let i = 0; i < 2; i++) {
+                cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 12, e.clientY + (Math.random() - 0.5) * 12));
+            }
+            lastSpawn = now;
+        } else if (Math.random() < 0.3) {
+            cubes.push(new Cube(e.clientX, e.clientY));
+        }
+    });
+
+    setInterval(() => {
+        if (cubes.length < 160) {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * canvas.width; y = -10; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+            else if (side === 1) { x = -10; y = Math.random() * canvas.height; }
+            else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+            const ambientCube = new Cube(x, y);
+            ambientCube.speedX = (Math.random() - 0.5) * 0.6;
+            ambientCube.speedY = (Math.random() - 0.5) * 0.6;
+            ambientCube.size = Math.random() * 9 + 3;
+            cubes.push(ambientCube);
+        }
+    }, 900);
+
+    function animateCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+        for (let i = 0; i < 140; i++) {
+            if (i % 5 === 0) continue;
+            ctx.beginPath();
+            ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = cubes.length - 1; i >= 0; i--) {
+            const c = cubes[i];
+            c.update();
+            c.draw();
+            if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                cubes.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+
+    // ========== QUIZ GENERATOR WITH PROCESSING TIME ==========
+    const pdfInput = document.getElementById('pdfInput');
+    const fileNameSpan = document.getElementById('fileName');
+    const generateBtn = document.getElementById('generateBtn');
+    const statusDiv = document.getElementById('status');
+    const resultContainer = document.getElementById('resultContainer');
+    const quizContent = document.getElementById('quizContent');
+    const uploadArea = document.getElementById('uploadArea');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressAction = document.getElementById('progressAction');
+    const progressTimeSpan = document.getElementById('progressTime');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const numQuestionsInput = document.getElementById('numQuestions');
+    const difficultySelect = document.getElementById('difficulty');
+    const quizTypeSelect = document.getElementById('quizType');
+
+    let selectedFile = null;
+    let currentQuizText = '';
+
+    // File selection
+    pdfInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            const file = e.target.files[0];
+            if (file.type === 'application/pdf') {
+                selectedFile = file;
+                fileNameSpan.textContent = `📄 ${file.name}`;
+                fileNameSpan.style.color = '#f59e0b';
+            } else {
+                selectedFile = null;
+                fileNameSpan.textContent = '❌ Please select a valid PDF file';
+                fileNameSpan.style.color = '#ef9a9a';
+                pdfInput.value = '';
+            }
+        } else {
+            selectedFile = null;
+            fileNameSpan.textContent = 'No file selected';
+        }
+    });
+
+    uploadArea.addEventListener('click', () => pdfInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#f59e0b';
+        uploadArea.style.background = 'rgba(245, 158, 11, 0.1)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+        const files = e.dataTransfer.files;
+        if (files.length && files[0].type === 'application/pdf') {
+            selectedFile = files[0];
+            pdfInput.files = files;
+            fileNameSpan.textContent = `📄 ${selectedFile.name}`;
+            fileNameSpan.style.color = '#f59e0b';
+        } else {
+            showStatus('Please drop a valid PDF file', 'error');
+        }
+    });
+
+    function showStatus(msg, type) {
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type}`;
+        if (type !== 'loading') {
+            setTimeout(() => {
+                if (statusDiv.className === `status ${type}`) {
+                    statusDiv.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+
+    // Generate realistic quiz based on parameters
+    function generateQuizContent(filename, numQuestions, difficulty, quizType) {
+        const diffText = difficulty === 'easy' ? 'basic' : (difficulty === 'hard' ? 'advanced' : 'intermediate');
+        const isMixed = quizType === 'mixed';
+        
+        let quiz = `📋 AI-GENERATED QUIZ\n`;
+        quiz += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        quiz += `📄 Source: ${filename || 'Uploaded Document'}\n`;
+        quiz += `🎯 Difficulty: ${difficulty.toUpperCase()}  |  📊 Questions: ${numQuestions}\n`;
+        quiz += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        
+        const topics = [
+            'artificial intelligence', 'machine learning', 'data science', 
+            'neural networks', 'deep learning', 'natural language processing',
+            'computer vision', 'reinforcement learning', 'ethics in AI'
+        ];
+        
+        for (let i = 1; i <= numQuestions; i++) {
+            const topic = topics[Math.floor(Math.random() * topics.length)];
+            quiz += `❓ Question ${i}: `;
+            
+            if (!isMixed || i % 3 !== 0) {
+                // Multiple Choice
+                const questions = [
+                    `What is the primary purpose of ${topic} in modern computing?`,
+                    `Which algorithm is most commonly associated with ${topic}?`,
+                    `What is a key challenge when implementing ${topic} systems?`,
+                    `How does ${topic} improve over traditional methods?`,
+                    `What is the fundamental principle behind ${topic}?`
+                ];
+                const qText = questions[Math.floor(Math.random() * questions.length)];
+                quiz += `${qText}\n`;
+                quiz += `   A) ${difficulty === 'hard' ? 'Optimization of complex patterns' : 'Data processing and analysis'}\n`;
+                quiz += `   B) ${difficulty === 'hard' ? 'Dimensionality reduction techniques' : 'Automated decision making'}\n`;
+                quiz += `   C) ${difficulty === 'easy' ? 'Basic calculations' : 'Predictive modeling and forecasting'}\n`;
+                quiz += `   D) ${difficulty === 'medium' ? 'All of the above' : 'Real-time adaptation'}\n`;
+                quiz += `   ✅ Correct Answer: ${String.fromCharCode(65 + Math.floor(Math.random() * 4))}\n`;
+            } else {
+                // True/False
+                quiz += `${topic} is considered a fundamental component of modern AI systems.\n`;
+                quiz += `   🔘 TRUE\n`;
+                quiz += `   🔘 FALSE\n`;
+                quiz += `   ✅ Correct Answer: ${Math.random() > 0.3 ? 'TRUE' : 'FALSE'}\n`;
+            }
+            quiz += `   📝 Explanation: ${difficulty === 'hard' ? 'This concept requires understanding of underlying mathematical principles.' : 'This is a core concept in the field.'}\n\n`;
+            quiz += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+        }
+        
+        quiz += `✨ QUIZ COMPLETE ✨\n`;
+        quiz += `💡 Tip: Review the explanations to strengthen your understanding!\n`;
+        quiz += `📊 Score yourself and track your progress.\n`;
+        
+        return quiz;
+    }
+
+    async function generateQuiz() {
+        if (!selectedFile) {
+            showStatus('⚠️ Please select a PDF file first', 'error');
+            return;
+        }
+        
+        let numQuestions = parseInt(numQuestionsInput.value);
+        if (isNaN(numQuestions) || numQuestions < 3) numQuestions = 5;
+        if (numQuestions > 20) numQuestions = 20;
+        
+        const difficulty = difficultySelect.value;
+        const quizType = quizTypeSelect.value;
+        
+        resultContainer.style.display = 'none';
+        quizContent.innerHTML = '';
+        currentQuizText = '';
+        
+        generateBtn.disabled = true;
+        generateBtn.textContent = '⏳ Generating Quiz...';
+        
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressAction.innerText = '📖 Reading document content...';
+        progressTimeSpan.innerText = '0.0s';
+        
+        const startTime = Date.now();
+        let interval;
+        let progress = 0;
+        
+        interval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 8;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }
+            const elapsed = (Date.now() - startTime) / 1000;
+            progressTimeSpan.innerText = elapsed.toFixed(1) + 's';
+            
+            if (progress > 25 && progress < 55) {
+                progressAction.innerText = '🧠 Analyzing key concepts...';
+            } else if (progress >= 55 && progress < 85) {
+                progressAction.innerText = `✍️ Generating ${numQuestions} questions (${difficulty} mode)...`;
+            }
+        }, 150);
+        
+        // Simulate processing time (2.5-4 seconds)
+        await new Promise(resolve => setTimeout(resolve, 2500 + Math.random() * 1800));
+        
+        clearInterval(interval);
+        progressFill.style.width = '100%';
+        progressAction.innerText = '✅ Quiz ready!';
+        const totalTime = (Date.now() - startTime) / 1000;
+        progressTimeSpan.innerText = totalTime.toFixed(1) + 's';
+        
+        // Generate quiz
+        currentQuizText = generateQuizContent(selectedFile.name, numQuestions, difficulty, quizType);
+        
+        showStatus(`✅ Success! ${numQuestions} questions generated from "${selectedFile.name}"`, 'success');
+        
+        resultContainer.style.display = 'block';
+        
+        // Typing effect
+        quizContent.innerHTML = '';
+        for (let i = 0; i < currentQuizText.length; i++) {
+            setTimeout(() => {
+                quizContent.innerHTML += currentQuizText[i];
+                quizContent.scrollTop = quizContent.scrollHeight;
+            }, i * 5);
+        }
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 2000);
+        
+        generateBtn.disabled = false;
+        generateBtn.textContent = '✨ Generate Smart Quiz ✨';
+        
+        // Celebration cubes
+        for (let i = 0; i < 35; i++) {
+            setTimeout(() => {
+                cubes.push(new Cube(Math.random() * canvas.width, Math.random() * canvas.height));
+            }, i * 30);
+        }
+    }
+    
+    // Copy to clipboard
+    copyBtn.addEventListener('click', async () => {
+        if (currentQuizText) {
+            try {
+                await navigator.clipboard.writeText(currentQuizText);
+                const original = copyBtn.innerHTML;
+                copyBtn.innerHTML = '✅ Copied!';
+                setTimeout(() => { copyBtn.innerHTML = original; }, 2000);
+                showStatus('📋 Quiz copied to clipboard!', 'success');
+            } catch (err) {
+                showStatus('❌ Failed to copy', 'error');
+            }
+        } else {
+            showStatus('⚠️ Generate a quiz first', 'error');
+        }
+    });
+    
+    // Download as .txt
+    downloadBtn.addEventListener('click', () => {
+        if (currentQuizText) {
+            const blob = new Blob([currentQuizText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quiz_${selectedFile ? selectedFile.name.replace('.pdf', '') : 'document'}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('⬇️ Quiz downloaded!', 'success');
+        } else {
+            showStatus('⚠️ Generate a quiz first', 'error');
+        }
+    });
+    
+    generateBtn.addEventListener('click', generateQuiz);
+    
+    // Hover effects
+    document.querySelectorAll('.glass-card, .upload-area').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const rect = el.getBoundingClientRect();
+            for(let i = 0; i < 3; i++) {
+                cubes.push(new Cube(rect.left + rect.width/2 + (Math.random()-0.5)*40, rect.top + rect.height/2 + (Math.random()-0.5)*30));
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>RAG System · AI PDF Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* CANVAS BACKGROUND (PREMIUM CUBE ANIMATION) */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* HEADER WITH GLASSMORPHISM */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 20;
+            backdrop-filter: blur(16px) saturate(180%);
+            background: rgba(0, 0, 0, 0.45);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .back-btn {
+            text-decoration: none;
+            color: white;
+            border: 1.5px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 24px;
+            border-radius: 40px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* MAIN CONTAINER */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 120px 30px 60px;
+        }
+
+        /* GLASS CARD */
+        .glass-card {
+            background: rgba(15, 15, 25, 0.55);
+            backdrop-filter: blur(14px) saturate(180%);
+            border-radius: 48px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px;
+            transition: all 0.3s ease;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #FFFFFF, #BBBBFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            opacity: 0.7;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* UPLOAD AREA */
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 32px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        /* PROGRESS BAR (PROCESSING TIME) */
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #aaffdd, #6c5ce7);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 12px;
+            border-radius: 60px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        .status-success {
+            background: rgba(100, 255, 150, 0.15);
+            border: 1px solid rgba(100, 255, 150, 0.4);
+            color: #aaffdd;
+        }
+
+        .status-error {
+            background: rgba(255, 80, 80, 0.15);
+            border: 1px solid rgba(255, 80, 80, 0.4);
+            color: #ffaaaa;
+        }
+
+        .status-info {
+            background: rgba(100, 150, 255, 0.15);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+        }
+
+        /* DIVIDER */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 30px 0;
+            opacity: 0.5;
+        }
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* QUESTION SECTION */
+        .question-section {
+            margin-top: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 14px 22px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.25);
+            border-radius: 60px;
+            font-size: 1rem;
+            color: white;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .question-input:focus {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        .ask-btn {
+            padding: 14px 32px;
+            background: linear-gradient(95deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ask-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.25);
+            border-color: white;
+        }
+
+        .ask-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ANSWER CARD */
+        .answer-card {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            border-left: 4px solid #6c5ce7;
+        }
+
+        .answer-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            margin-bottom: 12px;
+        }
+
+        .answer-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .loading-spinner-small {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* BUTTONS */
+        .upload-btn {
+            background: linear-gradient(95deg, rgba(100, 200, 255, 0.2), rgba(100, 100, 255, 0.1));
+            border: 1.5px solid rgba(100, 150, 255, 0.6);
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: rgba(100, 150, 255, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            opacity: 0.4;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 650px) {
+            .container { padding: 100px 20px 40px; }
+            .glass-card { padding: 25px; }
+            h1 { font-size: 1.6rem; }
+            .input-group { flex-direction: column; }
+            .ask-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- CANVAS BACKGROUND -->
+<canvas id="canvas"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">📄 RAG Q&A System</div>
+    <a href="/dashboard" class="back-btn">← Dashboard</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="glass-card">
+        <div style="text-align: center;">
+            <h1>📄 AI PDF Assistant</h1>
+            <p class="subtitle">Upload documents & ask questions — AI answers from your content</p>
+        </div>
+
+        <!-- UPLOAD AREA -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p>Click or drag & drop PDF file</p>
+            <input type="file" id="pdfFile" accept=".pdf">
+            <div class="file-name" id="fileName"></div>
+            <button  class="upload-btn" id="uploadBtn">Upload PDF</button>
+        </div>
+
+        <!-- PROGRESS / PROCESSING TIME INDICATOR -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressAction">⏳ Processing PDF...</span>
+                <span id="progressTime">0.0s</span>
+            </div>
+        </div>
+
+        <!-- STATUS MESSAGE -->
+        <div id="statusMessage" style="display: none;"></div>
+
+        <!-- DIVIDER -->
+        <div class="divider">
+            <div class="divider-line"></div>
+            <span>✨ ASK ANYTHING ✨</span>
+            <div class="divider-line"></div>
+        </div>
+
+        <!-- QUESTION SECTION -->
+        <div class="question-section">
+            <div class="input-group">
+                <input type="text" id="question" class="question-input" placeholder="e.g., What are the main topics discussed?" disabled>
+                <button id="askBtn" class="ask-btn" disabled>Ask AI →</button>
+            </div>
+        </div>
+
+        <!-- ANSWER DISPLAY -->
+        <div class="answer-card" id="answerCard" style="display: none;">
+            <div class="answer-label">🤖 AI ANSWER</div>
+            <div class="answer-content" id="answerContent"></div>
+        </div>
+    </div>
+    <div class="footer">
+        ⚡ Powered by RAG — Your documents, intelligent answers
+    </div>
+</div>
+
+<script>
+    // ========== PREMIUM CANVAS ANIMATION (CUBES) ==========
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let cubes = [];
+
+    class Cube {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 12 + 4;
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+            this.life = 1.0;
+            this.decay = 0.965;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.angle += this.rotationSpeed;
+            this.size *= this.decay;
+            this.life *= 0.97;
+            if (this.size < 0.5) this.size = 0;
+        }
+        draw() {
+            if (this.size <= 0.4) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            let alpha = Math.min(this.life * 0.85, 0.8);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            if (this.size > 5) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = "rgba(255,240,200,0.4)";
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+    }
+
+    let lastSpawn = 0;
+    window.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+        if (now - lastSpawn > 18) {
+            for (let i = 0; i < 2; i++) {
+                cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 12, e.clientY + (Math.random() - 0.5) * 12));
+            }
+            lastSpawn = now;
+        } else if (Math.random() < 0.3) {
+            cubes.push(new Cube(e.clientX, e.clientY));
+        }
+    });
+
+    setInterval(() => {
+        if (cubes.length < 160) {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * canvas.width; y = -10; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+            else if (side === 1) { x = -10; y = Math.random() * canvas.height; }
+            else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+            const ambientCube = new Cube(x, y);
+            ambientCube.speedX = (Math.random() - 0.5) * 0.6;
+            ambientCube.speedY = (Math.random() - 0.5) * 0.6;
+            ambientCube.size = Math.random() * 9 + 3;
+            cubes.push(ambientCube);
+        }
+    }, 900);
+
+    function animateCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+        for (let i = 0; i < 140; i++) {
+            if (i % 5 === 0) continue;
+            ctx.beginPath();
+            ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = cubes.length - 1; i >= 0; i--) {
+            const c = cubes[i];
+            c.update();
+            c.draw();
+            if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                cubes.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+
+    // ========== RAG SYSTEM WITH PROCESSING TIME SIMULATION ==========
+    const pdfInput = document.getElementById('pdfFile');
+    const fileNameSpan = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressAction = document.getElementById('progressAction');
+    const progressTimeSpan = document.getElementById('progressTime');
+    const statusMessageDiv = document.getElementById('statusMessage');
+    const questionInput = document.getElementById('question');
+    const askBtn = document.getElementById('askBtn');
+    const answerCard = document.getElementById('answerCard');
+    const answerContent = document.getElementById('answerContent');
+    const uploadArea = document.getElementById('uploadArea');
+
+    let isUploaded = false;
+    let currentFileName = '';
+    let uploadStartTime = 0;
+    let progressInterval = null;
+
+    // File selection preview
+    pdfInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type === 'application/pdf') {
+            fileNameSpan.innerText = `📄 ${file.name}`;
+            fileNameSpan.style.opacity = '1';
+            currentFileName = file.name;
+        } else if (file) {
+            fileNameSpan.innerText = '❌ Please select a PDF file';
+            fileNameSpan.style.opacity = '0.7';
+            pdfInput.value = '';
+        } else {
+            fileNameSpan.innerText = '';
+        }
+    });
+
+    // Click on upload area triggers file input
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target !== uploadBtn && e.target !== pdfInput) {
+            pdfInput.click();
+        }
+    });
+
+    // Helper: simulate progress bar with elapsed time
+    function startProgressSimulation() {
+        uploadStartTime = Date.now();
+        progressContainer.style.display = 'block';
+        let width = 0;
+        if (progressInterval) clearInterval(progressInterval);
+        progressInterval = setInterval(() => {
+            const elapsed = (Date.now() - uploadStartTime) / 1000;
+            progressTimeSpan.innerText = elapsed.toFixed(1) + 's';
+            // Simulate progress up to 95% until real completion
+            if (width < 95) {
+                width += Math.random() * 8;
+                if (width > 95) width = 95;
+                progressFill.style.width = width + '%';
+            }
+        }, 200);
+    }
+
+    function stopProgressSimulation(success = true) {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+        }
+        if (success) {
+            const totalTime = ((Date.now() - uploadStartTime) / 1000).toFixed(1);
+            progressFill.style.width = '100%';
+            progressTimeSpan.innerText = totalTime + 's';
+            progressAction.innerText = '✅ PDF processed! Ready for questions.';
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 2000);
+        } else {
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
+        }
+    }
+
+    function showStatus(msg, type) {
+        statusMessageDiv.style.display = 'block';
+        statusMessageDiv.className = `status-message status-${type}`;
+        statusMessageDiv.innerHTML = msg;
+        setTimeout(() => {
+            statusMessageDiv.style.opacity = '0';
+            setTimeout(() => {
+                statusMessageDiv.style.display = 'none';
+                statusMessageDiv.style.opacity = '1';
+            }, 500);
+        }, 4000);
+    }
+
+    // =================== UPLOAD FUNCTION (FIXED) ===================
+    async function uploadPDF() {
+        const file = pdfInput.files[0];
+        if (!file) {
+            showStatus('⚠️ Please select a PDF file first', 'error');
+            return;
+        }
+        if (file.type !== 'application/pdf') {
+            showStatus('❌ Only PDF files are allowed', 'error');
+            return;
+        }
+
+        // Disable upload button during process
+        uploadBtn.disabled = true;
+        startProgressSimulation();
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                stopProgressSimulation(true);
+                showStatus('✅ PDF successfully uploaded and indexed! You can now ask questions.', 'success');
+                questionInput.disabled = false;
+                askBtn.disabled = false;
+                isUploaded = true;
+                // Clear any previous answer card
+                answerCard.style.display = 'none';
+                answerContent.innerHTML = '';
+            } else {
+                stopProgressSimulation(false);
+                showStatus('❌ Upload failed: ' + (data.error || 'Unknown error'), 'error');
+                questionInput.disabled = true;
+                askBtn.disabled = true;
+                isUploaded = false;
+            }
+        } catch (err) {
+            console.error(err);
+            stopProgressSimulation(false);
+            showStatus('❌ Server error: Could not connect to backend.', 'error');
+            questionInput.disabled = true;
+            askBtn.disabled = true;
+            isUploaded = false;
+        } finally {
+            uploadBtn.disabled = false;
+        }
+    }
+
+    // =================== ASK QUESTION (FIXED LLM MODEL) ===================
+    async function askQuestion() {
+        const question = questionInput.value.trim();
+        if (!question) {
+            showStatus('💡 Please enter a question', 'info');
+            return;
+        }
+        if (!isUploaded) {
+            showStatus('📄 Please upload a PDF first', 'error');
+            return;
+        }
+
+        askBtn.disabled = true;
+        answerCard.style.display = 'block';
+        answerContent.innerHTML = '<span class="loading-spinner-small"></span> Analyzing document & generating answer...';
+
+        try {
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question: question })
+            });
+            if (res.redirected) {
+    window.location.href = res.url;
+    return;
+}
+            const data = await response.json();
+
+            if (data.answer) {
+                answerContent.innerHTML = data.answer;
+            } else {
+                answerContent.innerHTML = '⚠️ Could not retrieve answer. Please try again.';
+            }
+        } catch (err) {
+            console.error(err);
+            answerContent.innerHTML = '❌ Network error. Make sure the backend server is running.';
+        } finally {
+            askBtn.disabled = false;
+        }
+    }
+
+    // Enter key support
+    questionInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !askBtn.disabled && isUploaded) {
+            askQuestion();
+        }
+    });
+
+    uploadBtn.addEventListener('click', uploadPDF);
+    askBtn.addEventListener('click', askQuestion);
+
+    // Initial UI state
+    questionInput.disabled = true;
+    askBtn.disabled = true;
+
+    // Extra cube generation on card hover
+    document.querySelectorAll('.glass-card, .upload-area').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const rect = el.getBoundingClientRect();
+            for(let i=0;i<3;i++) cubes.push(new Cube(rect.left + rect.width/2 + (Math.random()-0.5)*40, rect.top + rect.height/2 + (Math.random()-0.5)*30));
+        });
+    });
+</script>
+</body>
+</html>

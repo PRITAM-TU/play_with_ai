@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI PDF Summarizer · Smart Document Analysis</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+    }
+
+    body {
+        background: #000000;
+        color: #ffffff;
+        overflow-x: hidden;
+        min-height: 100vh;
+    }
+
+    /* CANVAS BACKGROUND (PREMIUM CUBE ANIMATION) */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* HEADER WITH GLASSMORPHISM */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(0, 0, 0, 0.45);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    .back-btn {
+        text-decoration: none;
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        padding: 8px 24px;
+        border-radius: 40px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+        font-weight: 500;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+        position: relative;
+        z-index: 10;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 120px 30px 60px;
+    }
+
+    /* GLASS CARD */
+    .glass-card {
+        background: rgba(15, 15, 25, 0.55);
+        backdrop-filter: blur(14px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 40px;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+        font-size: 2.2rem;
+        text-align: center;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 32px;
+        font-size: 0.9rem;
+    }
+
+    /* UPLOAD AREA */
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.3);
+        border-radius: 32px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 24px;
+    }
+
+    .upload-area:hover {
+        border-color: #6c5ce7;
+        background: rgba(108, 92, 231, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .upload-icon {
+        font-size: 3.5rem;
+        margin-bottom: 12px;
+    }
+
+    .upload-area p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .file-name {
+        margin-top: 12px;
+        font-size: 0.85rem;
+        color: #6c5ce7;
+        word-break: break-all;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    /* PROGRESS BAR (PROCESSING TIME) */
+    .progress-container {
+        margin: 20px 0;
+        display: none;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #6c5ce7, #a88eff);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* BUTTONS */
+    .btn {
+        width: 100%;
+        padding: 14px 24px;
+        background: linear-gradient(95deg, #6c5ce7, #a88eff);
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3);
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* STATUS MESSAGES */
+    .status {
+        margin-top: 20px;
+        padding: 12px 16px;
+        border-radius: 60px;
+        text-align: center;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .status.loading {
+        display: block;
+        background: rgba(255, 193, 7, 0.15);
+        border: 1px solid rgba(255, 193, 7, 0.4);
+        color: #ffd966;
+    }
+
+    .status.success {
+        display: block;
+        background: rgba(76, 175, 80, 0.15);
+        border: 1px solid rgba(76, 175, 80, 0.4);
+        color: #a5d6a7;
+    }
+
+    .status.error {
+        display: block;
+        background: rgba(244, 67, 54, 0.15);
+        border: 1px solid rgba(244, 67, 54, 0.4);
+        color: #ef9a9a;
+    }
+
+    /* RESULT TEXTAREA */
+    .result-container {
+        margin-top: 28px;
+    }
+
+    .result-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        opacity: 0.6;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .result-textarea {
+        width: 100%;
+        min-height: 250px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 24px;
+        padding: 20px;
+        color: white;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        resize: vertical;
+        outline: none;
+        transition: all 0.3s;
+    }
+
+    .result-textarea:focus {
+        border-color: #6c5ce7;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .result-textarea::placeholder {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Copy button */
+    .copy-btn {
+        margin-top: 12px;
+        padding: 8px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 40px;
+        color: white;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .copy-btn:hover {
+        background: rgba(108, 92, 231, 0.3);
+        border-color: #6c5ce7;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    @media (max-width: 650px) {
+        .container { padding: 100px 20px 40px; }
+        .glass-card { padding: 25px; }
+        h1 { font-size: 1.6rem; }
+        .upload-area { padding: 30px 15px; }
+    }
+</style>
+</head>
+<body>
+
+<!-- CANVAS BACKGROUND -->
+<canvas id="canvas"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">🧠 AI PDF Summarizer</div>
+    <a href="/dashboard" class="back-btn">← Dashboard</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="glass-card">
+        <h1>🧠 AI PDF Summarizer</h1>
+        <div class="subtitle">Extract key insights from any document — Smart AI summarization</div>
+
+        <!-- UPLOAD AREA -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄✨</div>
+            <p>Click or drag & drop PDF here</p>
+            <input type="file" id="pdfInput" accept=".pdf">
+            <div class="file-name" id="fileName">No file selected</div>
+        </div>
+
+        <!-- PROGRESS BAR (PROCESSING TIME) -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="progressAction">⏳ Reading document...</span>
+                <span id="progressTime">0.0s</span>
+            </div>
+        </div>
+
+        <button class="btn" id="summarizeBtn">✨ Generate Summary ✨</button>
+
+        <div id="status" class="status"></div>
+
+        <!-- RESULT SECTION -->
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <div class="result-label">
+                <span>📝 AI SUMMARY</span>
+                <button class="copy-btn" id="copyBtn">📋 Copy to Clipboard</button>
+            </div>
+            <textarea id="result" class="result-textarea" placeholder="Summary will appear here..." readonly></textarea>
+        </div>
+
+        <div class="footer">Powered by Advanced AI · Extract key points in seconds</div>
+    </div>
+</div>
+
+<script>
+    // ========== PREMIUM CANVAS ANIMATION (CUBES) ==========
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let cubes = [];
+
+    class Cube {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 12 + 4;
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+            this.life = 1.0;
+            this.decay = 0.965;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.angle += this.rotationSpeed;
+            this.size *= this.decay;
+            this.life *= 0.97;
+            if (this.size < 0.5) this.size = 0;
+        }
+        draw() {
+            if (this.size <= 0.4) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            let alpha = Math.min(this.life * 0.85, 0.8);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            if (this.size > 5) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = "rgba(255,240,200,0.4)";
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+    }
+
+    let lastSpawn = 0;
+    window.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+        if (now - lastSpawn > 18) {
+            for (let i = 0; i < 2; i++) {
+                cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 12, e.clientY + (Math.random() - 0.5) * 12));
+            }
+            lastSpawn = now;
+        } else if (Math.random() < 0.3) {
+            cubes.push(new Cube(e.clientX, e.clientY));
+        }
+    });
+
+    setInterval(() => {
+        if (cubes.length < 160) {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * canvas.width; y = -10; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+            else if (side === 1) { x = -10; y = Math.random() * canvas.height; }
+            else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+            const ambientCube = new Cube(x, y);
+            ambientCube.speedX = (Math.random() - 0.5) * 0.6;
+            ambientCube.speedY = (Math.random() - 0.5) * 0.6;
+            ambientCube.size = Math.random() * 9 + 3;
+            cubes.push(ambientCube);
+        }
+    }, 900);
+
+    function animateCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+        for (let i = 0; i < 140; i++) {
+            if (i % 5 === 0) continue;
+            ctx.beginPath();
+            ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = cubes.length - 1; i >= 0; i--) {
+            const c = cubes[i];
+            c.update();
+            c.draw();
+            if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                cubes.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+
+    // ========== PDF SUMMARIZER WITH PROCESSING TIME SIMULATION ==========
+    const pdfInput = document.getElementById('pdfInput');
+    const fileNameSpan = document.getElementById('fileName');
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    const statusDiv = document.getElementById('status');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultTextarea = document.getElementById('result');
+    const uploadArea = document.getElementById('uploadArea');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressAction = document.getElementById('progressAction');
+    const progressTimeSpan = document.getElementById('progressTime');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let selectedFile = null;
+
+    // File selection preview
+    pdfInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            const file = e.target.files[0];
+            if (file.type === 'application/pdf') {
+                selectedFile = file;
+                fileNameSpan.textContent = `📄 ${file.name}`;
+                fileNameSpan.style.color = '#6c5ce7';
+            } else {
+                selectedFile = null;
+                fileNameSpan.textContent = '❌ Please select a valid PDF file';
+                fileNameSpan.style.color = '#ef9a9a';
+                pdfInput.value = '';
+            }
+        } else {
+            selectedFile = null;
+            fileNameSpan.textContent = 'No file selected';
+        }
+    });
+
+    // Click upload area
+    uploadArea.addEventListener('click', () => pdfInput.click());
+
+    // Drag & drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = '#6c5ce7';
+        uploadArea.style.background = 'rgba(108, 92, 231, 0.1)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+        uploadArea.style.background = 'transparent';
+        
+        const files = e.dataTransfer.files;
+        if (files.length && files[0].type === 'application/pdf') {
+            selectedFile = files[0];
+            pdfInput.files = files;
+            fileNameSpan.textContent = `📄 ${selectedFile.name}`;
+            fileNameSpan.style.color = '#6c5ce7';
+        } else {
+            showStatus('Please drop a valid PDF file', 'error');
+        }
+    });
+
+    function showStatus(msg, type) {
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type}`;
+        if (type !== 'loading') {
+            setTimeout(() => {
+                if (statusDiv.className === `status ${type}`) {
+                    statusDiv.style.display = 'none';
+                }
+            }, 5000);
+        }
+    }
+
+    // Generate realistic AI summary based on filename
+    function generateMockSummary(filename) {
+        const summaries = [
+            `📊 **Executive Summary**\n\nThe document provides a comprehensive overview of artificial intelligence applications in modern education. Key findings indicate that AI-powered study tools improve retention rates by up to 40% compared to traditional methods. The paper discusses implementation strategies, challenges, and future directions for AI integration in academic environments.\n\n**Main Points:**\n• Personalized learning paths increase engagement\n• Automated feedback systems reduce instructor workload\n• Ethical considerations around data privacy remain important\n• Early adoption shows promising results across multiple institutions`,
+            
+            `📚 **Document Analysis**\n\nThis document explores the intersection of machine learning and cognitive science. The authors present a novel framework for adaptive learning systems that respond to individual student progress. Experimental results demonstrate significant improvements in comprehension scores across diverse student populations.\n\n**Highlights:**\n• 35% faster concept mastery\n• Reduced dropout rates by 22%\n• Scalable architecture for large institutions\n• Integration with existing LMS platforms is seamless`,
+
+            `🧠 **AI Summary**\n\nThe uploaded PDF contains detailed research on natural language processing for educational content. Key contributions include a new algorithm for automatic question generation and a benchmark dataset for evaluating summarization quality. The study validates the approach through extensive user testing.\n\n**Key Takeaways:**\n• State-of-the-art performance on standard metrics\n• Open-source implementation available\n• Real-time processing capabilities\n• Potential applications in automated tutoring systems`,
+
+            `✨ **Smart Summary**\n\nBased on the content of "${filename || 'your document'}", the core themes revolve around innovative learning methodologies and technology integration. The document emphasizes practical applications and provides case studies from multiple educational settings. Recommendations include investing in teacher training and infrastructure upgrades.\n\n**Core Insights:**\n• Technology enhances rather than replaces human instruction\n• Student engagement metrics improved significantly\n• Cost-benefit analysis supports long-term adoption\n• Future research directions identified in conclusion`
+        ];
+        return summaries[Math.floor(Math.random() * summaries.length)];
+    }
+
+    // Simulate PDF summarization with realistic processing time
+    async function summarizePDF() {
+        if (!selectedFile) {
+            showStatus('⚠️ Please select a PDF file first', 'error');
+            return;
+        }
+
+        // Hide previous result
+        resultContainer.style.display = 'none';
+        resultTextarea.value = '';
+        
+        summarizeBtn.disabled = true;
+        summarizeBtn.textContent = '⏳ Processing...';
+        
+        // Show progress container
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressAction.innerText = '📖 Extracting text from PDF...';
+        progressTimeSpan.innerText = '0.0s';
+        
+        const startTime = Date.now();
+        let interval;
+        let progress = 0;
+        
+        // Animate progress bar smoothly
+        interval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 8;
+                if (progress > 90) progress = 90;
+                progressFill.style.width = progress + '%';
+            }
+            const elapsed = (Date.now() - startTime) / 1000;
+            progressTimeSpan.innerText = elapsed.toFixed(1) + 's';
+            
+            // Update action text based on progress
+            if (progress > 25 && progress < 55) {
+                progressAction.innerText = '🧠 Analyzing content & extracting key points...';
+            } else if (progress >= 55 && progress < 85) {
+                progressAction.innerText = '✨ Generating intelligent summary...';
+            } else if (progress >= 85) {
+                progressAction.innerText = '📝 Finalizing results...';
+            }
+        }, 150);
+        
+        // Simulate API processing time (2.5-4 seconds realistic for summarization)
+        await new Promise(resolve => setTimeout(resolve, 2500 + Math.random() * 1800));
+        
+        // Complete progress
+        clearInterval(interval);
+        progressFill.style.width = '100%';
+        progressAction.innerText = '✅ Summary complete!';
+        const totalTime = (Date.now() - startTime) / 1000;
+        progressTimeSpan.innerText = totalTime.toFixed(1) + 's';
+        
+        // Generate summary
+        const summary = generateMockSummary(selectedFile.name);
+        
+        // Show success
+        showStatus(`✅ Success! "${selectedFile.name}" summarized successfully.`, 'success');
+        
+        // Display result with typing effect
+        resultContainer.style.display = 'block';
+        resultTextarea.value = '';
+        
+        // Typing effect for premium feel
+        for (let i = 0; i < summary.length; i++) {
+            setTimeout(() => {
+                resultTextarea.value += summary[i];
+                resultTextarea.scrollTop = resultTextarea.scrollHeight;
+            }, i * 8);
+        }
+        
+        // Hide progress after 2 seconds
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 2000);
+        
+        summarizeBtn.disabled = false;
+        summarizeBtn.textContent = '✨ Generate Summary ✨';
+        
+        // Spawn celebration cubes
+        for (let i = 0; i < 35; i++) {
+            setTimeout(() => {
+                cubes.push(new Cube(Math.random() * canvas.width, Math.random() * canvas.height));
+            }, i * 30);
+        }
+    }
+
+    // Copy to clipboard functionality
+    copyBtn.addEventListener('click', async () => {
+        const summaryText = resultTextarea.value;
+        if (summaryText && summaryText.trim() !== '') {
+            try {
+                await navigator.clipboard.writeText(summaryText);
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+                showStatus('📋 Summary copied to clipboard!', 'success');
+            } catch (err) {
+                showStatus('❌ Failed to copy', 'error');
+            }
+        } else {
+            showStatus('⚠️ Nothing to copy yet', 'error');
+        }
+    });
+
+    summarizeBtn.addEventListener('click', summarizePDF);
+
+    // Add hover effect on glass card for cube spawn
+    document.querySelectorAll('.glass-card, .upload-area').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+            const rect = el.getBoundingClientRect();
+            for(let i = 0; i < 3; i++) {
+                cubes.push(new Cube(rect.left + rect.width/2 + (Math.random()-0.5)*40, rect.top + rect.height/2 + (Math.random()-0.5)*30));
+            }
+        });
+    });
+</script>
+</body>
+</html>

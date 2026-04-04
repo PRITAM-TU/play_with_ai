@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Register · AI Study Companion</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+    }
+
+    body {
+        overflow: hidden;
+        transition: background-color 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        background: #000000;
+        height: 100vh;
+    }
+
+    /* Canvas background - dynamic premium particles */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    /* Glassmorphism card - register premium */
+    .glass-register {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 20;
+        text-align: center;
+        background: rgba(10, 10, 10, 0.55);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        padding: 2.8rem 3.2rem;
+        box-shadow: 0 30px 50px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255,255,255,0.1) inset;
+        transition: all 0.3s ease;
+        width: 440px;
+        max-width: 90vw;
+    }
+
+    /* Gradient glow text */
+    .glow-heading {
+        font-size: 2.4rem;
+        font-weight: 700;
+        margin-bottom: 1.8rem;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 4s linear infinite, textGlow 2.5s ease-in-out infinite alternate;
+        letter-spacing: -0.3px;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    @keyframes textGlow {
+        0% { text-shadow: 0 0 2px rgba(255,255,255,0.2); }
+        100% { text-shadow: 0 0 20px rgba(255,255,255,0.6), 0 0 5px #aaaaff; }
+    }
+
+    /* Form styling */
+    .register-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.4rem;
+        margin-top: 0.5rem;
+    }
+
+    .input-group {
+        position: relative;
+        width: 100%;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.35);
+        border-radius: 60px;
+        font-size: 1rem;
+        color: white;
+        outline: none;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+
+    .input-group input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 400;
+    }
+
+    .input-group input:focus {
+        border-color: #ffffff;
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 18px rgba(255,255,255,0.2);
+        transform: scale(1.01);
+    }
+
+    /* Password hint / strength (optional premium touch) */
+    .password-hint {
+        font-size: 0.7rem;
+        text-align: left;
+        margin-top: 5px;
+        margin-left: 16px;
+        opacity: 0.6;
+        transition: 0.2s;
+        letter-spacing: 0.3px;
+    }
+
+    /* Register button */
+    .register-btn {
+        background: linear-gradient(95deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+        border: 1.5px solid rgba(255, 255, 255, 0.7);
+        padding: 12px 20px;
+        border-radius: 60px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 8px;
+        backdrop-filter: blur(8px);
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .register-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+        transition: left 0.5s;
+    }
+
+    .register-btn:hover::before {
+        left: 100%;
+    }
+
+    .register-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        background: rgba(255, 255, 255, 0.25);
+        border-color: white;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+    }
+
+    .register-btn:active {
+        transform: scale(0.98);
+    }
+
+    /* extra links */
+    .extra-links {
+        margin-top: 1.8rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+
+    .extra-links a {
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: none;
+        transition: 0.2s;
+        border-bottom: 1px dotted transparent;
+    }
+
+    .extra-links a:hover {
+        color: white;
+        border-bottom-color: white;
+    }
+
+    /* Dark/Light toggle (premium) */
+    .theme-toggle {
+        position: fixed;
+        top: 28px;
+        right: 32px;
+        z-index: 30;
+        background: rgba(20, 20, 30, 0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 60px;
+        padding: 8px 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid rgba(255,255,255,0.3);
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: white;
+    }
+
+    .theme-toggle:hover {
+        background: rgba(40,40,55,0.8);
+        transform: scale(1.02);
+    }
+
+    .toggle-icon {
+        font-size: 1.3rem;
+    }
+
+    /* Light mode overrides */
+    body.light-mode {
+        background: #f0f3fa;
+    }
+
+    body.light-mode .glass-register {
+        background: rgba(240, 242, 255, 0.55);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    }
+
+    body.light-mode .glow-heading {
+        background: linear-gradient(135deg, #1e2a5e, #2c3e8f, #1a2c6e);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: shimmer 4s linear infinite, textGlowLight 2s infinite alternate;
+    }
+
+    @keyframes textGlowLight {
+        0% { text-shadow: 0 0 0px rgba(30,42,94,0.2); }
+        100% { text-shadow: 0 0 12px rgba(44,62,143,0.4), 0 0 4px #a0b0ff; }
+    }
+
+    body.light-mode .input-group input {
+        background: rgba(0, 0, 0, 0.06);
+        border-color: rgba(0, 0, 0, 0.35);
+        color: #111;
+    }
+
+    body.light-mode .input-group input::placeholder {
+        color: rgba(0, 0, 0, 0.55);
+    }
+
+    body.light-mode .input-group input:focus {
+        background: rgba(0, 0, 0, 0.1);
+        border-color: #1e2a5e;
+        box-shadow: 0 0 12px rgba(30,42,94,0.2);
+    }
+
+    body.light-mode .password-hint {
+        color: #2c3e50;
+        opacity: 0.65;
+    }
+
+    body.light-mode .register-btn {
+        background: rgba(0, 0, 0, 0.08);
+        border-color: rgba(0, 0, 0, 0.5);
+        color: #111;
+    }
+
+    body.light-mode .register-btn:hover {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: #000;
+        color: #000;
+    }
+
+    body.light-mode .extra-links a {
+        color: rgba(0, 0, 0, 0.7);
+    }
+
+    body.light-mode .extra-links a:hover {
+        color: #000;
+        border-bottom-color: #000;
+    }
+
+    body.light-mode .theme-toggle {
+        background: rgba(200, 210, 230, 0.7);
+        border-color: rgba(0,0,0,0.2);
+        color: #111;
+    }
+
+    body.light-mode canvas {
+        opacity: 0.65;
+    }
+
+    /* Back to home link */
+    .back-home {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        z-index: 30;
+        background: rgba(0,0,0,0.35);
+        backdrop-filter: blur(8px);
+        padding: 8px 18px;
+        border-radius: 40px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        color: rgba(255,255,255,0.8);
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: 0.2s;
+    }
+
+    .back-home:hover {
+        background: rgba(255,255,255,0.2);
+        color: white;
+    }
+
+    body.light-mode .back-home {
+        background: rgba(0,0,0,0.1);
+        color: #111;
+        border-color: rgba(0,0,0,0.2);
+    }
+
+    body.light-mode .back-home:hover {
+        background: rgba(0,0,0,0.2);
+        color: #000;
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+        .glass-register {
+            padding: 2rem 1.8rem;
+            width: 90%;
+        }
+        .glow-heading {
+            font-size: 1.9rem;
+        }
+        .theme-toggle {
+            top: 18px;
+            right: 18px;
+            padding: 5px 14px;
+        }
+        .back-home {
+            bottom: 18px;
+            left: 18px;
+            padding: 6px 14px;
+        }
+    }
+
+    /* Micro success animation */
+    @keyframes gentlePop {
+        0% { transform: scale(0.95); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- Glassmorphic Register Card -->
+<div class="glass-register">
+    <h2 class="glow-heading">✨ Join the Future ✨</h2>
+    <form method="POST" class="register-form" id="registerForm">
+        <div class="input-group">
+            <input type="text" name="username" placeholder="Choose username" required autocomplete="username">
+        </div>
+        <div class="input-group">
+            <input type="password" name="password" id="regPassword" placeholder="Create password" required autocomplete="new-password">
+            <div class="password-hint" id="passwordHint">🔒 8+ characters · strong & secure</div>
+        </div>
+        <button type="submit" class="register-btn">🚀 Register →</button>
+        <div class="extra-links">
+            <a href="/login">Already have an account?</a>
+            <a href="/">Explore as guest</a>
+        </div>
+    </form>
+</div>
+
+<!-- Dark/Light Mode Toggle -->
+<div class="theme-toggle" id="themeToggle">
+    <span class="toggle-icon" id="toggleIcon">🌙</span>
+    <span id="toggleLabel">Dark Mode</span>
+</div>
+
+<!-- Back to home -->
+<a href="/" class="back-home">← Back to Home</a>
+
+<script>
+    (function() {
+        // ---------------------- PREMIUM CANVAS (cube particle system) -----------------
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", () => resizeCanvas());
+
+        let cubes = [];
+
+        class Cube {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 12 + 4;
+                this.speedX = (Math.random() - 0.5) * 1.6;
+                this.speedY = (Math.random() - 0.5) * 1.6;
+                this.angle = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+                this.life = 1.0;
+                this.decay = 0.962;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.angle += this.rotationSpeed;
+                this.size *= this.decay;
+                this.life *= 0.97;
+                if (this.size < 0.5) this.size = 0;
+            }
+
+            draw() {
+                if (this.size <= 0.4) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                const isLight = document.body.classList.contains('light-mode');
+                let alpha = Math.min(this.life * 0.85, 0.8);
+                if (isLight) {
+                    ctx.strokeStyle = `rgba(25, 30, 55, ${alpha * 0.9})`;
+                } else {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                }
+                ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                if (!isLight && this.size > 4) {
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = "rgba(255,240,200,0.4)";
+                    ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                    ctx.shadowBlur = 0;
+                }
+                ctx.restore();
+            }
+        }
+
+        // Mouse move: creates glass cubes trail
+        let lastSpawn = 0;
+        window.addEventListener("mousemove", (e) => {
+            const now = Date.now();
+            if (now - lastSpawn > 18) {
+                for (let i = 0; i < 2; i++) {
+                    cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 10, e.clientY + (Math.random() - 0.5) * 10));
+                }
+                lastSpawn = now;
+            } else if (Math.random() < 0.3) {
+                cubes.push(new Cube(e.clientX, e.clientY));
+            }
+        });
+
+        // Ambient particles for depth
+        setInterval(() => {
+            if (cubes.length < 150) {
+                let side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) { x = Math.random() * canvas.width; y = -8; }
+                else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 8; }
+                else if (side === 1) { x = -8; y = Math.random() * canvas.height; }
+                else { x = canvas.width + 8; y = Math.random() * canvas.height; }
+                const ambientCube = new Cube(x, y);
+                ambientCube.speedX = (Math.random() - 0.5) * 0.7;
+                ambientCube.speedY = (Math.random() - 0.5) * 0.7;
+                ambientCube.size = Math.random() * 9 + 3;
+                cubes.push(ambientCube);
+            }
+        }, 900);
+
+        function animateCanvas() {
+            if (!ctx) return;
+            const isLightMode = document.body.classList.contains('light-mode');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (isLightMode) {
+                ctx.fillStyle = "#f5f7fc";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // subtle grid pattern for light mode elegance
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.04)";
+                ctx.lineWidth = 0.6;
+                for (let i = 0; i < canvas.width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, i % canvas.height);
+                    ctx.lineTo(canvas.width, i % canvas.height);
+                    ctx.stroke();
+                }
+            } else {
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // premium star dust effect
+                ctx.fillStyle = "rgba(255,255,255,0.06)";
+                for (let i = 0; i < 140; i++) {
+                    if (i % 5 === 0) continue;
+                    ctx.beginPath();
+                    ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = cubes.length - 1; i >= 0; i--) {
+                const c = cubes[i];
+                c.update();
+                c.draw();
+                if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                    cubes.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
+        // ---------------------- DARK / LIGHT MODE TOGGLE -----------------
+        const themeToggle = document.getElementById('themeToggle');
+        const toggleIconSpan = document.getElementById('toggleIcon');
+        const toggleLabelSpan = document.getElementById('toggleLabel');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.body.classList.remove('light-mode');
+                document.body.classList.add('dark-mode');
+                toggleIconSpan.innerHTML = '🌙';
+                toggleLabelSpan.innerText = 'Dark Mode';
+                localStorage.setItem('register_theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.body.classList.add('light-mode');
+                toggleIconSpan.innerHTML = '☀️';
+                toggleLabelSpan.innerText = 'Light Mode';
+                localStorage.setItem('register_theme', 'light');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('register_theme');
+        if (savedTheme === 'light') {
+            setTheme(false);
+        } else {
+            document.body.classList.add('dark-mode');
+            setTheme(true);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isCurrentlyDark = !document.body.classList.contains('light-mode');
+            setTheme(isCurrentlyDark);
+        });
+
+        // ---------------------- FORM INTERACTIONS & PREMIUM VALIDATION -----------------
+        const registerBtn = document.querySelector('.register-btn');
+        const passwordInput = document.getElementById('regPassword');
+        const hintSpan = document.getElementById('passwordHint');
+        const form = document.getElementById('registerForm');
+
+        // password strength hint update
+        function updatePasswordStrength() {
+            const val = passwordInput.value;
+            if (val.length === 0) {
+                hintSpan.innerHTML = '🔒 8+ characters · strong & secure';
+                hintSpan.style.opacity = '0.6';
+            } else if (val.length < 6) {
+                hintSpan.innerHTML = '⚠️ Weak — use at least 6 characters';
+                hintSpan.style.opacity = '0.9';
+                hintSpan.style.color = '#ffaa88';
+            } else if (val.length < 10) {
+                hintSpan.innerHTML = '👍 Good — adding numbers makes it stronger';
+                hintSpan.style.opacity = '0.8';
+                hintSpan.style.color = '#bbffaa';
+            } else {
+                hintSpan.innerHTML = '✅ Strong password! Excellent.';
+                hintSpan.style.opacity = '1';
+                hintSpan.style.color = '#aaffdd';
+            }
+            if (document.body.classList.contains('light-mode')) {
+                if (val.length >= 10) hintSpan.style.color = '#1e6b3b';
+                else if (val.length >= 6) hintSpan.style.color = '#2c5f2d';
+                else hintSpan.style.color = '#a55117';
+            }
+        }
+
+        passwordInput.addEventListener('input', updatePasswordStrength);
+        
+        // hover effects: spawn cubes on register button
+        registerBtn.addEventListener('mouseenter', (e) => {
+            const rect = registerBtn.getBoundingClientRect();
+            for (let i = 0; i < 8; i++) {
+                cubes.push(new Cube(rect.left + rect.width/2 + (Math.random() - 0.5) * 45, rect.top + rect.height/2 + (Math.random() - 0.5) * 25));
+            }
+        });
+
+        // input fields focus effect
+        const allInputs = document.querySelectorAll('.input-group input');
+        allInputs.forEach(input => {
+            input.addEventListener('focus', (e) => {
+                const rect = input.getBoundingClientRect();
+                for (let i = 0; i < 5; i++) {
+                    cubes.push(new Cube(rect.left + 12 + Math.random() * rect.width, rect.top + rect.height/2 + (Math.random() - 0.5) * 14));
+                }
+            });
+        });
+
+        // Registration simulation with premium feedback
+        form.addEventListener('submit', (e) => {
+            
+             const username = form.querySelector('input[name="username"]').value.trim();
+    const password = passwordInput.value;
+
+    if (username.length < 3) {
+        e.preventDefault();
+        showFloatingMessage("✨ Username must be at least 3 characters", "#ffaa77");
+        return;
+    }
+
+    if (password.length < 6) {
+        e.preventDefault();
+        showFloatingMessage("🔐 Password too weak — min 6 characters", "#ffaa77");
+        return;
+    }
+            // Simulate successful registration
+            showFloatingMessage(`🎉 Welcome ${username}! Account created. Redirecting...`, "#aaffdd");
+            setTimeout(() => {
+                // Optional redirect simulation, but we keep UI consistent
+                const msg = document.createElement('div');
+                msg.style.position = 'fixed';
+                msg.style.top = '20%';
+                msg.style.left = '50%';
+                msg.style.transform = 'translateX(-50%)';
+                msg.style.background = 'rgba(0,0,0,0.8)';
+                msg.style.backdropFilter = 'blur(20px)';
+                msg.style.padding = '14px 28px';
+                msg.style.borderRadius = '60px';
+                msg.style.color = 'white';
+                msg.style.zIndex = '1000';
+                msg.style.border = '1px solid rgba(255,255,255,0.3)';
+                msg.style.fontWeight = '500';
+                msg.innerText = '✨ Registration successful! You can now login ✨';
+                document.body.appendChild(msg);
+                setTimeout(() => { msg.style.opacity = '0'; setTimeout(() => msg.remove(), 500); }, 2500);
+                // reset form optionally
+                form.reset();
+                updatePasswordStrength();
+            }, 600);
+        });
+        
+        function showFloatingMessage(text, colorHint) {
+            const toast = document.createElement('div');
+            toast.innerText = text;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '28%';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.background = 'rgba(0,0,0,0.75)';
+            toast.style.backdropFilter = 'blur(20px)';
+            toast.style.padding = '10px 24px';
+            toast.style.borderRadius = '50px';
+            toast.style.color = '#fff';
+            toast.style.borderLeft = `4px solid ${colorHint || '#ffffff'}`;
+            toast.style.zIndex = '1000';
+            toast.style.fontSize = '0.9rem';
+            toast.style.fontWeight = '500';
+            toast.style.pointerEvents = 'none';
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 2000);
+        }
+
+        // initial hint style fix for light mode
+        updatePasswordStrength();
+    })();
+</script>
+</body>
+</html>

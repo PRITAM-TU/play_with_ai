@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AI Chatbot · Smart Assistant</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Poppins', sans-serif;
+    }
+
+    body {
+        background: #000000;
+        color: #ffffff;
+        overflow-x: hidden;
+        min-height: 100vh;
+    }
+
+    /* CANVAS BACKGROUND */
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* HEADER */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(0, 0, 0, 0.45);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #FFFFFF, #BBBBFF, #E0E0FF);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+
+    .back-btn {
+        text-decoration: none;
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        padding: 8px 24px;
+        border-radius: 40px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.05);
+        font-weight: 500;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+        position: relative;
+        z-index: 10;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 100px 20px 40px;
+    }
+
+    /* GLASS CARD */
+    .glass-card {
+        background: rgba(15, 15, 25, 0.55);
+        backdrop-filter: blur(14px) saturate(180%);
+        border-radius: 48px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 30px;
+        transition: all 0.3s ease;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    /* CHAT HEADER */
+    .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #6c5ce7, #a88eff);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+
+    .chat-title h2 {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+
+    .chat-title p {
+        font-size: 0.7rem;
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .online-dot {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.5; transform: scale(0.8); }
+        100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* MESSAGES AREA */
+    .messages {
+        height: 420px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        padding: 10px 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .messages::-webkit-scrollbar {
+        width: 5px;
+    }
+    .messages::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+    }
+    .messages::-webkit-scrollbar-thumb {
+        background: #6c5ce7;
+        border-radius: 10px;
+    }
+
+    /* MESSAGE BUBBLES */
+    .msg {
+        max-width: 80%;
+        padding: 12px 18px;
+        border-radius: 24px;
+        line-height: 1.5;
+        font-size: 0.9rem;
+        animation: fadeInUp 0.3s ease;
+        word-wrap: break-word;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .user {
+        background: linear-gradient(135deg, #6c5ce7, #8b74ff);
+        align-self: flex-end;
+        border-bottom-right-radius: 6px;
+        color: white;
+    }
+
+    .bot {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        align-self: flex-start;
+        border-bottom-left-radius: 6px;
+    }
+
+    /* TYPING INDICATOR */
+    .typing-indicator {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        align-self: flex-start;
+        padding: 12px 18px;
+        border-radius: 24px;
+        border-bottom-left-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: rgba(255,255,255,0.6);
+        border-radius: 50%;
+        animation: typingAnim 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingAnim {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* INPUT AREA */
+    .input-area {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .input-area input {
+        flex: 1;
+        padding: 14px 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        border-radius: 60px;
+        font-size: 0.95rem;
+        color: white;
+        outline: none;
+        transition: all 0.3s;
+    }
+
+    .input-area input:focus {
+        border-color: #6c5ce7;
+        background: rgba(108, 92, 231, 0.1);
+        box-shadow: 0 0 15px rgba(108, 92, 231, 0.2);
+    }
+
+    .input-area input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .send-btn {
+        padding: 14px 28px;
+        background: linear-gradient(95deg, #6c5ce7, #a88eff);
+        border: none;
+        border-radius: 60px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .send-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(108, 92, 231, 0.4);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* SUGGESTIONS */
+    .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .suggestion-chip {
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 40px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .suggestion-chip:hover {
+        background: rgba(108, 92, 231, 0.3);
+        border-color: #6c5ce7;
+    }
+
+    /* FOOTER */
+    .footer {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    @media (max-width: 600px) {
+        .container { padding: 90px 15px 30px; }
+        .glass-card { padding: 20px; }
+        .messages { height: 380px; }
+        .msg { max-width: 90%; }
+        .send-btn { padding: 12px 20px; }
+    }
+</style>
+</head>
+<body>
+
+<!-- CANVAS BACKGROUND -->
+<canvas id="canvas"></canvas>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">🤖 AI Chatbot</div>
+    <a href="/dashboard" class="back-btn">← Dashboard</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+    <div class="glass-card">
+        <div class="chat-header">
+            <div class="avatar">🤖</div>
+            <div class="chat-title">
+                <h2>AI Study Assistant</h2>
+                <p><span class="online-dot"></span> Online · Ready to help</p>
+            </div>
+        </div>
+
+        <!-- MESSAGES -->
+        <div class="messages" id="messages">
+            <div class="msg bot">
+                👋 Hi! I'm your AI Study Companion. Ask me anything about your studies, assignments, or general knowledge. I'm here 24/7!
+            </div>
+        </div>
+
+        <!-- INPUT AREA -->
+        <div class="input-area">
+            <input type="text" id="input" placeholder="Ask me anything..." autocomplete="off">
+            <button class="send-btn" id="sendBtn">Send</button>
+        </div>
+
+        <!-- SUGGESTIONS -->
+        <div class="suggestions">
+            <span class="suggestion-chip">📚 What is AI?</span>
+            <span class="suggestion-chip">🧠 Explain machine learning</span>
+            <span class="suggestion-chip">💻 How to learn Python?</span>
+            <span class="suggestion-chip">📝 Summarize this concept</span>
+            <span class="suggestion-chip">✨ Give me study tips</span>
+        </div>
+
+        <div class="footer">
+            Powered by Advanced AI · Smart responses from your study companion
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== PREMIUM CANVAS ANIMATION ==========
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    let cubes = [];
+
+    class Cube {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 12 + 4;
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.speedY = (Math.random() - 0.5) * 1.5;
+            this.angle = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+            this.life = 1.0;
+            this.decay = 0.965;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.angle += this.rotationSpeed;
+            this.size *= this.decay;
+            this.life *= 0.97;
+            if (this.size < 0.5) this.size = 0;
+        }
+        draw() {
+            if (this.size <= 0.4) return;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            let alpha = Math.min(this.life * 0.85, 0.8);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = Math.max(1.2, this.size * 0.22);
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+            if (this.size > 5) {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = "rgba(255,240,200,0.4)";
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+    }
+
+    let lastSpawn = 0;
+    window.addEventListener("mousemove", (e) => {
+        const now = Date.now();
+        if (now - lastSpawn > 18) {
+            for (let i = 0; i < 2; i++) {
+                cubes.push(new Cube(e.clientX + (Math.random() - 0.5) * 12, e.clientY + (Math.random() - 0.5) * 12));
+            }
+            lastSpawn = now;
+        } else if (Math.random() < 0.3) {
+            cubes.push(new Cube(e.clientX, e.clientY));
+        }
+    });
+
+    setInterval(() => {
+        if (cubes.length < 160) {
+            let side = Math.floor(Math.random() * 4);
+            let x, y;
+            if (side === 0) { x = Math.random() * canvas.width; y = -10; }
+            else if (side === 2) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+            else if (side === 1) { x = -10; y = Math.random() * canvas.height; }
+            else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+            const ambientCube = new Cube(x, y);
+            ambientCube.speedX = (Math.random() - 0.5) * 0.6;
+            ambientCube.speedY = (Math.random() - 0.5) * 0.6;
+            ambientCube.size = Math.random() * 9 + 3;
+            cubes.push(ambientCube);
+        }
+    }, 900);
+
+    function animateCanvas() {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+        for (let i = 0; i < 140; i++) {
+            if (i % 5 === 0) continue;
+            ctx.beginPath();
+            ctx.arc((i * 311) % canvas.width, (i * 173) % canvas.height, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = cubes.length - 1; i >= 0; i--) {
+            const c = cubes[i];
+            c.update();
+            c.draw();
+            if (c.size <= 0.6 || c.x + c.size < -50 || c.x - c.size > canvas.width + 50 || c.y + c.size < -50 || c.y - c.size > canvas.height + 70) {
+                cubes.splice(i, 1);
+            }
+        }
+        requestAnimationFrame(animateCanvas);
+    }
+    animateCanvas();
+
+    // ========== AI CHATBOT WITH SMART RESPONSES ==========
+    const messagesDiv = document.getElementById('messages');
+    const inputField = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Smart response database
+    function getAIResponse(userMessage) {
+        const msg = userMessage.toLowerCase().trim();
+        
+        // Study related responses
+        if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
+            return "👋 Hello! I'm your AI Study Assistant. How can I help you learn today?";
+        }
+        if (msg.includes('how are you')) {
+            return "✨ I'm doing great, thanks for asking! Ready to help you with your studies. What would you like to learn?";
+        }
+        if (msg.includes('what is ai') || msg.includes('artificial intelligence')) {
+            return "🤖 **Artificial Intelligence (AI)** is the simulation of human intelligence in machines. It enables computers to learn, reason, and solve problems like humans. Examples include voice assistants, recommendation systems, and self-driving cars!";
+        }
+        if (msg.includes('machine learning') || msg.includes('ml')) {
+            return "🧠 **Machine Learning** is a subset of AI where computers learn from data without being explicitly programmed. It's like teaching a child by showing examples. Types include supervised, unsupervised, and reinforcement learning.";
+        }
+        if (msg.includes('python') || msg.includes('learn python')) {
+            return "🐍 **Python** is a great first language! Start with: variables, loops, functions, then move to libraries like NumPy and Pandas. I recommend free resources like CS50P, Python.org, and practice on LeetCode!";
+        }
+        if (msg.includes('study tip') || msg.includes('how to study') || msg.includes('study better')) {
+            return "📚 **Study Tips:**\n• Use active recall (test yourself)\n• Spaced repetition (review over time)\n• Pomodoro technique (25 min focus + 5 min break)\n• Teach what you learn to someone else\n• Take handwritten notes for better retention!";
+        }
+        if (msg.includes('summarize') || msg.includes('summary')) {
+            return "📝 I'd love to summarize content for you! Please share the text you want me to summarize, or upload a PDF in the Smart Notes section. I can create bullet-point notes in multiple languages!";
+        }
+        if (msg.includes('thank')) {
+            return "🎉 You're very welcome! Keep learning and growing. Is there anything else I can help you with?";
+        }
+        if (msg.includes('help') || msg.includes('what can you do')) {
+            return "💡 **I can help you with:**\n• Answering study questions\n• Explaining concepts (AI, ML, Python, etc.)\n• Study tips and techniques\n• Summarizing information\n• Guidance on assignments\nJust ask me anything!";
+        }
+        if (msg.includes('exam') || msg.includes('test') || msg.includes('prepare')) {
+            return "📖 **Exam Preparation Tips:**\n• Start early and create a schedule\n• Practice past papers\n• Form study groups\n• Get enough sleep before the exam\n• Stay hydrated and take breaks!";
+        }
+        if (msg.includes('motivation') || msg.includes('motivate')) {
+            return "🔥 **Stay motivated!** Remember why you started. Small daily progress leads to big results. You've got this! 💪 Would you like some study strategies?";
+        }
+        
+        // Default responses
+        const defaultResponses = [
+            "🤔 That's interesting! Could you tell me more about what you're studying? I'm here to help explain concepts or answer specific questions.",
+            "📚 Great question! I'd love to help. Can you provide more context or specify which topic you're referring to?",
+            "✨ I'm here to support your learning journey. Feel free to ask about AI, programming, study techniques, or any academic subject!",
+            "💡 Let me think about that... In the meantime, would you like to know about study tips, AI concepts, or programming?",
+            "🎯 That's a good question! I can help explain it better if you share the specific topic or subject area."
+        ];
+        return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+    }
+
+    // Add message to chat with animation
+    function addMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${sender}`;
+        msgDiv.innerText = text;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        return msgDiv;
+    }
+
+    // Show typing indicator
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        messagesDiv.appendChild(typingDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) indicator.remove();
+    }
+
+    async function sendMessage() {
+        const userText = inputField.value.trim();
+        if (!userText) return;
+
+        // Disable input while processing
+        inputField.disabled = true;
+        sendBtn.disabled = true;
+
+        // Add user message
+        addMessage(userText, 'user');
+        inputField.value = '';
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        // Simulate realistic thinking time (300-800ms)
+        const thinkingTime = 400 + Math.random() * 500;
+        
+        setTimeout(() => {
+            // Generate response
+            const botResponse = getAIResponse(userText);
+            removeTypingIndicator();
+            addMessage(botResponse, 'bot');
+            
+            // Spawn cubes for fun
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    cubes.push(new Cube(Math.random() * canvas.width, Math.random() * canvas.height));
+                }, i * 30);
+            }
+            
+            // Re-enable input
+            inputField.disabled = false;
+            sendBtn.disabled = false;
+            inputField.focus();
+        }, thinkingTime);
+    }
+
+    // Event listeners
+    sendBtn.addEventListener('click', sendMessage);
+    inputField.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !inputField.disabled) {
+            sendMessage();
+        }
+    });
+
+    // Suggestion chips
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            inputField.value = chip.innerText;
+            sendMessage();
+        });
+    });
+
+    // Focus input on load
+    inputField.focus();
+    
+    // Hover effect for glass card
+    document.querySelector('.glass-card').addEventListener('mouseenter', (e) => {
+        const rect = e.target.closest('.glass-card').getBoundingClientRect();
+        for(let i = 0; i < 3; i++) {
+            cubes.push(new Cube(rect.left + rect.width/2 + (Math.random()-0.5)*40, rect.top + rect.height/2 + (Math.random()-0.5)*30));
+        }
+    });
+</script>
+</body>
+</html>

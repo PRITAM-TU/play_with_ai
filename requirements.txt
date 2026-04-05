@@ -28,4 +28,4 @@ werkzeug
 numpy
 pandas
 gTTS
--e .
+#-e .

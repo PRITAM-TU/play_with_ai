@@ -20,7 +20,7 @@ from src.auth_helper import login_required
 # Load env
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__,template_folder='templates')
 app.register_blueprint(auth)
 app.register_blueprint(rag)
 app.register_blueprint(pdf_audio)
@@ -47,7 +47,8 @@ def create_database():
         connection = mysql.connector.connect(
             host=DB_HOST,
             user=DB_USER,
-            password=DB_PASSWORD
+            password=DB_PASSWORD,
+            port=os.getenv("DB_PORT", 3306)
         )
 
         cursor = connection.cursor()
@@ -68,6 +69,7 @@ create_database()
 # ==============================
 # STEP 2: CONNECT SQLALCHEMY
 # ==============================
+
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -139,4 +141,5 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
